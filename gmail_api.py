@@ -90,3 +90,64 @@ def get_email_message_details(service, msg_id):
             'star': star,
             'label': label,
         }
+
+def search_emails(service, query, user_id='me', max_results=5):
+    """
+    Searches for emails matching the given query.
+    
+    :param service: The Gmail API service instance.
+    :param query: The search query string.
+    :param user_id: The user's email address or 'me' for the authenticated user.
+    :param label_ids: List of label IDs to filter the search results.
+    :param folder_name: The name of the folder to search in (default is 'INBOX').
+    :param max_results: Maximum number of results to return.
+    :return: List of email messages matching the query.
+    """
+    messages = []
+    next_page_token = None
+
+    while True:
+        result = service.users().messages().list(
+            userId=user_id,
+            q=query,
+            pageToken=next_page_token,
+            maxResults=min(500, max_results - len(messages) if max_results else 500)
+        ).execute()
+
+        messages.extend(result.get('messages', []))
+        next_page_token = result.get('nextPageToken')
+
+        if not next_page_token or (max_results and len(messages) >= max_results):
+            break
+    
+    return messages[:max_results] if max_results else messages
+
+
+def search_email_conversations(service, query, user_id='me', max_results=5):
+    """
+    Searches for email conversations matching the given query.
+    
+    :param service: The Gmail API service instance.
+    :param query: The search query string.
+    :param user_id: The user's email address or 'me' for the authenticated user.
+    :param max_results: Maximum number of results to return.
+    :return: List of email conversations matching the query.
+    """
+    conversations = []
+    next_page_token = None
+
+    while True:
+        result = service.users().threads().list(
+            userId=user_id,
+            q=query,
+            pageToken=next_page_token,
+            maxResults=min(500, max_results - len(conversations) if max_results else 500)
+        ).execute()
+
+        conversations.extend(result.get('threads', []))
+        next_page_token = result.get('nextPageToken')
+
+        if not next_page_token or (max_results and len(conversations) >= max_results):
+            break
+    
+    return conversations[:max_results] if max_results else conversations
