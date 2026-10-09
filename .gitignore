@@ -1,0 +1,8 @@
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+GmailConfig.xcconfig
+backend/data/
+backend/.venv/
+backend/.env
