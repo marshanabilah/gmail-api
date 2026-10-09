@@ -6,12 +6,12 @@ struct GmailConnectionView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Before you connect") {
-                    Text("Create an iOS OAuth client in your Google Cloud project and add its client ID and redirect scheme to the app configuration.")
-                    Text("The app will request Gmail read-only access and use transaction emails only. It should not request permission to modify or delete mail.")
+                Section("Gmail setup") {
+                    Text("Create an iOS OAuth client in Google Cloud, then add its client ID and iOS URL scheme to the GmailClientID and GmailRedirectScheme build settings.")
+                    Text("The app requests Gmail read-only access. It does not modify or delete mail.")
                 }
-                Section("What we still need") {
-                    Text("Redacted transaction-email samples from Mandiri, BCA, Jago, and OCTO CIMB. Each bank parser needs real message formats before it can import safely.")
+                Section("First import") {
+                    Text("After sign-in is configured, the first mailbox feature will read the Ledger/BCA label for the last 90 days. This screen does not start that import yet.")
                 }
             }
             .navigationTitle("Connect Gmail")

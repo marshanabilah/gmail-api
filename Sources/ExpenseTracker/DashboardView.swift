@@ -1,9 +1,12 @@
 import SwiftData
 import SwiftUI
+import GoogleSignInSwift
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var showsDisconnectConfirmation = false
     let sync: SyncModel
     let openSettings: () -> Void
 
@@ -30,8 +33,11 @@ struct DashboardView: View {
                     } description: {
                         Text("Connect Gmail, then sync bank transaction emails to start your ledger.")
                     } actions: {
-                        Button("Connect Gmail") { sync.start() }
-                            .buttonStyle(.borderedProminent)
+                        GoogleSignInButton(
+                            scheme: colorScheme == .dark ? .dark : .light,
+                            action: sync.start
+                        )
+                        .accessibilityLabel("Connect Gmail with Google")
                     }
                 } else {
                     List {
@@ -59,9 +65,22 @@ struct DashboardView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Sync Gmail", systemImage: "arrow.triangle.2.circlepath") { sync.start() }
+                    switch sync.state {
+                    case .connected:
+                        Button("Disconnect Gmail", systemImage: "person.crop.circle.badge.xmark") { showsDisconnectConfirmation = true }
+                    case .connecting:
+                        ProgressView()
+                    case .idle, .syncing, .failed:
+                        Button("Connect Gmail", systemImage: "envelope.badge") { sync.start() }
+                    }
                 }
             }
+        }
+        .confirmationDialog("Disconnect Gmail?", isPresented: $showsDisconnectConfirmation, titleVisibility: .visible) {
+            Button("Disconnect", role: .destructive) { sync.disconnect() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes Gmail access from this iPhone. Your transactions and categories stay on the device.")
         }
     }
 }

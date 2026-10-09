@@ -16,6 +16,7 @@ struct ExpenseTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .onOpenURL { GoogleGmailAuthorizationService.handleRedirect($0) }
         }
         .modelContainer(container)
     }

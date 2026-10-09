@@ -10,15 +10,18 @@ The project contains a native SwiftUI foundation and a local import core.
 
 - Local SwiftData models for transactions and learned merchant categories
 - Dashboard, transaction history, and review screens
-- Gmail configuration boundary using read-only access only
+- Google Sign-In foundation for one Gmail account, with Gmail read-only access only
 - Duplicate protection using Gmail message IDs and transaction fingerprints
 - BCA QRIS email parsing for successful transactions
 - Jago debit-card email parsing, sent to review because the alert does not include a merchant or transaction timestamp
 - Merchant corrections that create a local matching rule for future imports
 
-The app does not yet authenticate with Gmail or download messages. It is not ready for everyday use yet.
+The app can start Google authorization after you add your own iOS OAuth client
+configuration. It does not download Gmail messages yet. The next capability is
+reading the user-maintained `Ledger/BCA` label for an initial 90-day scan.
 
-The private backend now provides the same parser and review policy over an API, backed by a local SQLite database. Gmail OAuth and mailbox synchronization are the next backend milestone.
+The Python backend is an earlier local prototype. The current direction is
+iPhone-first, so it is not part of Gmail authorization or BCA mailbox sync.
 
 ## Privacy model
 
@@ -112,9 +115,17 @@ The iOS app expects two configuration values:
 - `GmailClientID`
 - `GmailRedirectScheme`
 
-Do not commit either value in a shared configuration file. Add them through an ignored local Xcode configuration file or your app target's build settings.
+Create an iOS OAuth client in Google Cloud for
+`com.marshanabilah.expensetracker`. In the target's Build Settings, add its
+non-secret client ID as `GmailClientID` and its Google-issued iOS URL scheme as
+`GmailRedirectScheme`. The app has no client secret and uses the SDK-managed
+Keychain state for its local sign-in session.
 
 Use an iOS OAuth client and request only `https://www.googleapis.com/auth/gmail.readonly`. Google’s Gmail scope documentation explains why this is the least-privileged scope that can read the email content required for parsing: <https://developers.google.com/workspace/gmail/api/auth/scopes>.
+
+The project resolves Google Sign-In through Swift Package Manager. Its
+configuration and callback behavior follow Google's iOS setup guide:
+<https://developers.google.com/identity/sign-in/ios/start-integrating>.
 
 ## Adding a bank parser
 

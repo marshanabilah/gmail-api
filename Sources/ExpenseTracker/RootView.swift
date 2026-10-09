@@ -22,6 +22,7 @@ struct RootView: View {
         }
         .tint(.teal)
         .preferredColorScheme(preferredColorScheme)
+        .task { sync.restoreConnection() }
         .sheet(isPresented: $sync.showsConnectionSheet) {
             GmailConnectionView()
         }
