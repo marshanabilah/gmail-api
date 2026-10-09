@@ -20,9 +20,6 @@ The app can start Google authorization after you add your own iOS OAuth client
 configuration. It does not download Gmail messages yet. The next capability is
 reading the user-maintained `Ledger/BCA` label for an initial 90-day scan.
 
-The Python backend is an earlier local prototype. The current direction is
-iPhone-first, so it is not part of Gmail authorization or BCA mailbox sync.
-
 ## Privacy model
 
 Gmail is an import source, not the place where the ledger lives.
@@ -58,31 +55,6 @@ Gmail, read-only
 | Mandiri | Successful Livin' transfer with recipient, date, time, and amount | Low-confidence transfer in Review |
 
 ## Development
-
-### Run the backend
-
-```sh
-python3 -m venv backend/.venv
-backend/.venv/bin/pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env
-EXPENSE_TRACKER_API_TOKEN="choose-a-long-random-value" backend/.venv/bin/uvicorn app.main:app --app-dir backend --reload
-```
-
-The API is intentionally private. All `/v1` endpoints require the same value in the `X-API-Key` header. The raw email body is used for parsing but is not saved in SQLite.
-
-Available endpoints:
-
-- `GET /health`
-- `GET /v1/gmail/configuration`
-- `POST /v1/imports/preview`
-- `POST /v1/imports`
-- `GET /v1/transactions`
-- `GET /v1/review`
-- `POST /v1/review/{transaction_id}`
-
-```sh
-python3 -m unittest discover -s backend/tests
-```
 
 ### Requirements
 

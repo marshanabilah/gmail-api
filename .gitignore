@@ -3,9 +3,8 @@
 DerivedData/
 xcuserdata/
 GmailConfig.xcconfig
-backend/data/
-backend/.venv/
-backend/.env
 client_secret.json
 token files/token_gmail_v1.json
 .env
+__pycache__/
+*.py[cod]
