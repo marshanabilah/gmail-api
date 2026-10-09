@@ -34,14 +34,18 @@ struct TransactionsView: View {
 private struct ManualTransactionView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
     @State private var merchant = ""
     @State private var amount = ""
     @State private var occurredAt = Date()
     @State private var source: ManualTransactionSource = .cash
     @State private var category = "Food & drink"
     @State private var validationMessage: String?
+    @State private var showsNewCategory = false
 
-    private let categories = ["Food & drink", "Transport", "Shopping", "Bills", "Health", "Other"]
+    private var categories: [String] {
+        ExpenseCategory.availableNames(savedNames: savedCategories.map(\.name))
+    }
 
     var body: some View {
         NavigationStack {
@@ -65,6 +69,9 @@ private struct ManualTransactionView: View {
                             Text(option).tag(option)
                         }
                     }
+                    Button("Add category", systemImage: "plus") {
+                        showsNewCategory = true
+                    }
                 }
 
                 if let validationMessage {
@@ -82,6 +89,11 @@ private struct ManualTransactionView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                 }
+            }
+        }
+        .sheet(isPresented: $showsNewCategory) {
+            NewCategoryView(existingNames: categories) { newCategory in
+                category = newCategory
             }
         }
     }
@@ -122,6 +134,60 @@ private struct ManualTransactionView: View {
             dismiss()
         } catch {
             validationMessage = "Could not save this transaction. Try again."
+        }
+    }
+}
+
+struct NewCategoryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let existingNames: [String]
+    let didSave: (String) -> Void
+
+    @State private var name = ""
+    @State private var validationMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Category") {
+                    TextField("Category name", text: $name)
+                        .textContentType(.none)
+                        .autocorrectionDisabled()
+                }
+
+                if let validationMessage {
+                    Section {
+                        Text(validationMessage)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("New category")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard let normalizedName = ExpenseCategory.customName(from: name, existingNames: existingNames) else {
+            validationMessage = "Choose a name that is not already in your categories."
+            return
+        }
+
+        modelContext.insert(CategoryRecord(name: normalizedName))
+        do {
+            try modelContext.save()
+            didSave(normalizedName)
+            dismiss()
+        } catch {
+            validationMessage = "Could not save this category. Try again."
         }
     }
 }

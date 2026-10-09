@@ -97,6 +97,14 @@ swift run CoreVerification
 
 This checks the import policy, duplicate handling, merchant categorization, BCA QRIS parsing, and Jago debit-card parsing with redacted fixtures.
 
+### Run the unit tests
+
+```sh
+swift test
+```
+
+This includes category tests for custom names, duplicate prevention, and the built-in category list.
+
 ### Gmail configuration
 
 The iOS app expects two configuration values:

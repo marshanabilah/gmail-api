@@ -30,6 +30,28 @@ public enum ManualTransactionSource: String, CaseIterable, Sendable {
     }
 }
 
+public enum ExpenseCategory {
+    public static let defaultNames = ["Food & drink", "Transport", "Shopping", "Bills", "Health"]
+
+    public static func availableNames(savedNames: [String]) -> [String] {
+        var names = defaultNames
+        for name in savedNames {
+            guard let normalizedName = customName(from: name, existingNames: names) else { continue }
+            names.append(normalizedName)
+        }
+        return names
+    }
+
+    public static func customName(from candidate: String, existingNames: [String] = defaultNames) -> String? {
+        let normalizedName = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty else { return nil }
+        guard !existingNames.contains(where: { $0.caseInsensitiveCompare(normalizedName) == .orderedSame }) else {
+            return nil
+        }
+        return normalizedName
+    }
+}
+
 public struct ManualTransactionInput: Sendable {
     public let merchant: String
     public let amount: Decimal

@@ -49,3 +49,12 @@ final class MerchantRuleRecord {
         self.category = category
     }
 }
+
+@Model
+final class CategoryRecord {
+    @Attribute(.unique) var name: String
+
+    init(name: String) {
+        self.name = name
+    }
+}

@@ -4,7 +4,12 @@ import SwiftUI
 struct ReviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<TransactionRecord> { $0.status == "needsReview" }, sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
-    private let categories = ["Food & drink", "Transport", "Shopping", "Bills", "Health", "Other"]
+    @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
+    @State private var transactionAwaitingCategory: TransactionRecord?
+
+    private var categories: [String] {
+        ExpenseCategory.availableNames(savedNames: savedCategories.map(\.name))
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,6 +24,10 @@ struct ReviewView: View {
                                 ForEach(categories, id: \.self) { category in
                                     Button(category) { approve(transaction, as: category) }
                                 }
+                                Divider()
+                                Button("Add category", systemImage: "plus") {
+                                    transactionAwaitingCategory = transaction
+                                }
                             }
                         } header: {
                             Text("Import confidence \(Int(transaction.confidence * 100))%")
@@ -27,6 +36,11 @@ struct ReviewView: View {
                 }
             }
             .navigationTitle("Review")
+        }
+        .sheet(item: $transactionAwaitingCategory) { transaction in
+            NewCategoryView(existingNames: categories) { newCategory in
+                approve(transaction, as: newCategory)
+            }
         }
     }
 
