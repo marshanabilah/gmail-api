@@ -24,7 +24,7 @@ public struct ImportEngine: Sendable {
 
             let category = categorizer.category(for: draft.merchant, rules: rules)
             let needsCategory = switch draft.kind {
-            case .cardPurchase, .qrisPayment, .cashWithdrawal, .fee:
+            case .cardPurchase, .qrisPayment, .cashWithdrawal, .fee, .manualExpense:
                 true
             case .transferOut, .transferIn, .refund, .unknown:
                 false

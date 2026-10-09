@@ -8,6 +8,7 @@ public enum TransactionKind: String, Codable, CaseIterable, Sendable {
     case cashWithdrawal
     case fee
     case refund
+    case manualExpense
     case unknown
 }
 
@@ -15,6 +16,55 @@ public enum ImportStatus: String, Codable, CaseIterable, Sendable {
     case ready
     case needsReview
     case ignored
+}
+
+public enum ManualTransactionSource: String, CaseIterable, Sendable {
+    case cash
+    case eWallet
+
+    public var displayName: String {
+        switch self {
+        case .cash: "Cash"
+        case .eWallet: "E-wallet"
+        }
+    }
+}
+
+public struct ManualTransactionInput: Sendable {
+    public let merchant: String
+    public let amount: Decimal
+    public let occurredAt: Date
+    public let source: ManualTransactionSource
+    public let category: String
+
+    public init(
+        merchant: String,
+        amount: Decimal,
+        occurredAt: Date,
+        source: ManualTransactionSource,
+        category: String
+    ) {
+        self.merchant = merchant
+        self.amount = amount
+        self.occurredAt = occurredAt
+        self.source = source
+        self.category = category
+    }
+
+    public func makeDraft(id: String) -> TransactionDraft? {
+        let normalizedMerchant = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedMerchant.isEmpty, amount > 0 else { return nil }
+
+        return TransactionDraft(
+            sourceMessageID: id,
+            bankID: source.rawValue,
+            occurredAt: occurredAt,
+            merchant: normalizedMerchant,
+            amount: amount,
+            kind: .manualExpense,
+            confidence: 1
+        )
+    }
 }
 
 public struct TransactionDraft: Equatable, Sendable {

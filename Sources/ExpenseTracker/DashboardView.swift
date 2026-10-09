@@ -5,6 +5,7 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     let sync: SyncModel
+    let openSettings: () -> Void
 
     private var monthTransactions: [TransactionRecord] {
         transactions.filter { Calendar.current.isDate($0.occurredAt, equalTo: .now, toGranularity: .month) }
@@ -12,7 +13,7 @@ struct DashboardView: View {
 
     private var spending: Decimal {
         monthTransactions
-            .filter { ["cardPurchase", "qrisPayment", "fee"].contains($0.kind) }
+            .filter { ["cardPurchase", "qrisPayment", "fee", "manualExpense"].contains($0.kind) }
             .reduce(0) { $0 + $1.amount }
     }
 
@@ -52,6 +53,11 @@ struct DashboardView: View {
             }
             .navigationTitle("Ledger")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: openSettings) {
+                        Label("Appearance", systemImage: "gearshape")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Sync Gmail", systemImage: "arrow.triangle.2.circlepath") { sync.start() }
                 }

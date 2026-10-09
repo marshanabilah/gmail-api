@@ -149,4 +149,26 @@ let mandiriImport = ImportEngine().importDrafts(
     rules: []
 )
 precondition(mandiriImport.first?.status == .needsReview)
+
+let manualInput = ManualTransactionInput(
+    merchant: "Weekend market",
+    amount: 125_000,
+    occurredAt: Date(timeIntervalSince1970: 1_700_000_400),
+    source: .cash,
+    category: "Food & drink"
+)
+guard let manualTransaction = manualInput.makeDraft(id: "manual-test-1") else {
+    preconditionFailure("Expected a valid manual transaction")
+}
+precondition(manualTransaction.bankID == "cash")
+precondition(manualTransaction.kind == .manualExpense)
+precondition(manualTransaction.confidence == 1)
+precondition(ManualTransactionInput(
+    merchant: " ",
+    amount: 0,
+    occurredAt: Date(),
+    source: .eWallet,
+    category: "Other"
+).makeDraft(id: "manual-test-2") == nil)
+
 print("Core verification passed")
