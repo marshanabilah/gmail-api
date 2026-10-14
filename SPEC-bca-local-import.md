@@ -28,7 +28,9 @@ excluded upstream by `gmail-mailbox-sync` and must never arrive here.
 5. Existing Gmail message IDs and transaction fingerprints are ignored so a
    repeat scan cannot add a duplicate.
 6. The Review screen lets the owner correct the merchant or category, then
-   move the transaction out of Review through a separately specified action.
+   moves that transaction out of Review. The chosen category becomes a local
+   merchant rule; it can fill the category of matching Review items without
+   approving them.
 
 The Sync action does not create records until this module is implemented and
 the owner explicitly confirms the local Review import after a real
@@ -102,6 +104,8 @@ The local transaction stores:
   record.
 - An existing merchant rule can fill a category, but the record still starts
   in Review.
+- Applying saved merchant rules fills only matching Review categories; it
+  never changes a transaction's Review status.
 - Unsupported candidates produce no local record and do not block recognized
   BCA candidates in the same scan.
 - No raw Gmail content or sensitive banking metadata enters SwiftData, UI

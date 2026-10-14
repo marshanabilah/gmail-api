@@ -100,11 +100,11 @@ connection and disconnect paths; build succeeds.
 
 ## 6. Configure and verify the real Google callback
 
-- [ ] With the user's approval and account access, configure the selected
+- [x] With the user's approval and account access, configure the selected
   Google Cloud OAuth client using the final bundle ID and redirect scheme.
-- [ ] Put only non-secret configuration in the approved local build settings;
+- [x] Put only non-secret configuration in the approved local build settings;
   keep secrets/tokens out of the repository.
-- [ ] Complete one simulator sign-in, consent only to `gmail.readonly`, relaunch
+- [~] Complete one simulator sign-in, consent only to `gmail.readonly`, relaunch
   the app, and confirm the connected state restores.
 - [ ] Disconnect and confirm the ledger remains intact; schedule one final
   physical-device check before relying on the feature daily.
