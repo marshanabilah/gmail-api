@@ -106,3 +106,100 @@ contents must never be committed or pasted into the repository.
 Adding a Google dependency, adding a URL scheme, changing the bundle
 identifier, or changing Google Cloud configuration remains an explicit
 ask-before-change step from the approved spec.
+
+---
+
+# Implementation Plan: Gmail Mailbox Sync
+
+Module id: `gmail-mailbox-sync`
+
+## Overview
+
+Add a manual, read-only scan of the user's existing Gmail `Transaction` label.
+The scan covers the previous 90 calendar days, filters confirmed Flip receipts,
+and returns in-memory `BankEmail` candidates to the existing local-import
+boundary. It does not create local transaction records itself. That write path
+remains the separate `bca-local-import` module.
+
+## Architecture Decisions
+
+- Keep Gmail REST transport behind a narrow client protocol. Core filtering,
+  time-window calculation, pagination, and Flip recognition run without
+  Google, network, or simulator access.
+- Keep access tokens inside the iOS Gmail adapter. The core receives
+  `BankEmail` values only and must never log or store an access token.
+- Resolve the owner's exact `Transaction` label at scan time. The app does not
+  use, create, or change any other label.
+- Treat the documented Flip receipt structure as an exclusion before parser
+  selection. Unsupported non-Flip messages remain candidates; the downstream
+  importer decides whether it recognises their bank format.
+- A scan is user initiated. The UI may report a candidate count, but no scan
+  writes to SwiftData until the downstream importer is specified and approved.
+
+## Dependency Graph
+
+```text
+Configured gmail-auth connection
+            |
+            v
+Official Gmail API request contract
+            |
+            v
+Core mailbox scan + fixture tests
+            |
+            v
+iOS Gmail REST adapter + MIME decoding
+            |
+            v
+Manual scan state in the app
+            |
+            v
+bca-local-import review persistence
+            |
+            v
+One user-authorised real Transaction-label scan
+```
+
+Tasks 7 and 8 are safe without a real Gmail account. Task 9 can be unit-tested
+with fakes, while its real-account check waits for the unfinished configured
+sign-in verification in Task 6 and the later local-import implementation.
+
+## Task List
+
+### Phase: Mailbox foundation
+
+- [ ] Task 7: Define and test the mailbox scan contract
+- [ ] Task 8: Add the iOS Gmail REST adapter and MIME decoder
+
+### Checkpoint: Mailbox foundation
+
+- [ ] Core tests pass and the simulator build succeeds
+- [ ] Review the transport boundary before exposing manual sync in the UI
+
+### Phase: Manual scan handoff
+
+- [ ] Task 9: Wire a deliberate manual scan to an in-memory candidate result
+
+### Checkpoint: Mailbox handoff
+
+- [ ] Unit tests cover the manual scan state without real Gmail
+- [ ] No candidate is persisted outside the later `bca-local-import` module
+- [ ] Human approves the downstream import plan before a real mailbox scan
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Gmail response or token-refresh behavior differs from assumptions | High | Confirm the current official Gmail and Google Sign-In docs before coding the adapter. |
+| HTML-only or multipart bank emails decode incorrectly | Medium | Unit-test deterministic Base64URL and multipart fixtures before networking. |
+| Flip receipt resembles a transfer alert | High | Require the confirmed success phrase and both destination-field labels before exclusion, with a control fixture to prevent overmatching. |
+| Auth configuration is incomplete | Medium | Keep unit tests fake-driven and delay live Gmail verification until Task 6 completes. |
+| Scan is mistaken for an import | High | Return candidates in memory only and label the state clearly; SwiftData writes remain out of scope. |
+
+## Open Questions
+
+- Whether a stable Flip sender address or subject can be added as a second,
+  verified exclusion signal.
+- Whether the existing downstream module keeps the stable ID
+  `bca-local-import` while supporting BCA, Jago, and Livin', or is split after
+  its own approved spec.
