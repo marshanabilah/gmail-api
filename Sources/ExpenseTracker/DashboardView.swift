@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var bcaImportPreview: BCAReviewImportResult?
     @State private var bcaImportSummary: String?
     @State private var selectedMonth = SpendingAnalytics.monthStart(for: .now)
+    @State private var analyticsDetail: AnalyticsDetail?
     let sync: SyncModel
     let openSettings: () -> Void
 
@@ -73,7 +74,18 @@ struct DashboardView: View {
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(monthlySummary.categories, id: \.category) { category in
-                                    LabeledContent(category.category, value: category.amount, format: .currency(code: "IDR"))
+                                    Button {
+                                        analyticsDetail = .category(month: selectedMonth, category: category.category)
+                                    } label: {
+                                        HStack {
+                                            Text(category.category)
+                                            Spacer()
+                                            Text(category.amount, format: .currency(code: "IDR"))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("View \(category.category) transactions")
                                 }
                             }
                         }
@@ -81,6 +93,9 @@ struct DashboardView: View {
                         Section("Activity") {
                             ForEach(monthTransactions.prefix(5)) { transaction in
                                 TransactionRow(transaction: transaction)
+                            }
+                            Button("View all activity") {
+                                analyticsDetail = .month(selectedMonth)
                             }
                         }
 
@@ -135,6 +150,20 @@ struct DashboardView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes Gmail access from this iPhone. Your transactions and categories stay on the device.")
+        }
+        .sheet(item: $analyticsDetail) { detail in
+            NavigationStack {
+                MonthlyTransactionDetailView(
+                    month: detail.month,
+                    category: detail.category,
+                    transactions: transactions
+                )
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { analyticsDetail = nil }
+                    }
+                }
+            }
         }
         .confirmationDialog(
             "Import BCA payments?",
@@ -269,6 +298,36 @@ struct DashboardView: View {
     }
 }
 
+private enum AnalyticsDetail: Identifiable {
+    case month(Date)
+    case category(month: Date, category: String)
+
+    var id: String {
+        switch self {
+        case .month(let month):
+            "month-\(month.timeIntervalSinceReferenceDate)"
+        case .category(let month, let category):
+            "category-\(month.timeIntervalSinceReferenceDate)-\(category)"
+        }
+    }
+
+    var month: Date {
+        switch self {
+        case .month(let month), .category(let month, _):
+            month
+        }
+    }
+
+    var category: String? {
+        switch self {
+        case .month:
+            nil
+        case .category(_, let category):
+            category
+        }
+    }
+}
+
 struct TransactionRow: View {
     let transaction: TransactionRecord
 
@@ -289,5 +348,53 @@ struct TransactionRow: View {
                 .font(.body.weight(.semibold))
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MonthlyTransactionDetailView: View {
+    let month: Date
+    let category: String?
+    let transactions: [TransactionRecord]
+
+    private var filteredTransactions: [TransactionRecord] {
+        transactions.filter { transaction in
+            guard Calendar.current.isDate(transaction.occurredAt, equalTo: month, toGranularity: .month) else {
+                return false
+            }
+            guard let category else { return true }
+            let kind = TransactionKind(rawValue: transaction.kind) ?? .unknown
+            let status = ImportStatus(rawValue: transaction.status) ?? .needsReview
+            return SpendingAnalytics.isConfirmedExpense(kind: kind, status: status)
+                && SpendingAnalytics.categoryName(for: transaction.category) == category
+        }
+    }
+
+    var body: some View {
+        List {
+            if filteredTransactions.isEmpty {
+                ContentUnavailableView(
+                    "No transactions",
+                    systemImage: "list.bullet",
+                    description: Text(emptyStateDescription)
+                )
+            } else {
+                ForEach(filteredTransactions) { transaction in
+                    TransactionRow(transaction: transaction)
+                }
+            }
+        }
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var navigationTitle: String {
+        category ?? month.formatted(.dateTime.year().month(.wide))
+    }
+
+    private var emptyStateDescription: String {
+        if category != nil {
+            return "No confirmed spending matches this category in the selected month."
+        }
+        return "No transactions were recorded in the selected month."
     }
 }

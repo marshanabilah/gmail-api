@@ -261,7 +261,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = GW7GXWSLUG;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				GmailClientID = "";
@@ -286,7 +286,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = GW7GXWSLUG;
 				GENERATE_INFOPLIST_FILE = NO;
 				GmailClientID = "";
 				"GmailClientID[arch=*]" = "333897520030-a0ve4gdqs2lhviclpjv1f5l0jcq09v9m.apps.googleusercontent.com";

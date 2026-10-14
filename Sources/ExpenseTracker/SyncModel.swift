@@ -17,6 +17,7 @@ final class SyncModel {
     var showsConnectionSheet = false
     var lastSyncCandidateCount: Int?
     var canRetryMailboxSync = false
+    private var hasRestoredConnection = false
     private let auth: GmailAuthCoordinator
     private let mailbox: GmailMailboxSyncCoordinator
 
@@ -28,9 +29,10 @@ final class SyncModel {
     }
 
     func restoreConnection() {
-        guard GmailConfiguration.current != nil else {
+        guard !hasRestoredConnection, GmailConfiguration.current != nil else {
             return
         }
+        hasRestoredConnection = true
         Task {
             await auth.restore()
             applyAuthenticationState()

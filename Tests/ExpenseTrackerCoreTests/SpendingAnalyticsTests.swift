@@ -60,6 +60,19 @@ final class SpendingAnalyticsTests: XCTestCase {
         )
     }
 
+    func testConfirmedExpenseRuleExcludesReviewItemsAndTransfersFromCategoryDetails() {
+        XCTAssertTrue(SpendingAnalytics.isConfirmedExpense(kind: .qrisPayment, status: .ready))
+        XCTAssertTrue(SpendingAnalytics.isConfirmedExpense(kind: .manualExpense, status: .ready))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .qrisPayment, status: .needsReview))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .transferOut, status: .ready))
+    }
+
+    func testCategoryNameUsesUncategorizedOnlyForMissingOrBlankStoredValues() {
+        XCTAssertEqual(SpendingAnalytics.categoryName(for: nil), "Uncategorized")
+        XCTAssertEqual(SpendingAnalytics.categoryName(for: "  "), "Uncategorized")
+        XCTAssertEqual(SpendingAnalytics.categoryName(for: "  Food & drink  "), "Food & drink")
+    }
+
     private func input(date: Date, amount: Decimal, kind: TransactionKind, category: String?, status: ImportStatus) -> SpendingAnalyticsInput {
         SpendingAnalyticsInput(occurredAt: date, amount: amount, kind: kind, category: category, status: status)
     }

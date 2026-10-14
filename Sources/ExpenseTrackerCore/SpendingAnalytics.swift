@@ -71,14 +71,14 @@ public enum SpendingAnalytics {
             calendar.isDate($0.occurredAt, equalTo: month, toGranularity: .month)
         }
         let confirmedExpenses = monthlyTransactions.filter {
-            $0.status == .ready && isExpense($0.kind)
+            isConfirmedExpense(kind: $0.kind, status: $0.status)
         }
         let pendingExpenses = monthlyTransactions.filter {
             $0.status == .needsReview && isExpense($0.kind)
         }
         var categoryAmounts: [String: Decimal] = [:]
         for transaction in confirmedExpenses {
-            let category = normalizedCategory(transaction.category)
+            let category = categoryName(for: transaction.category)
             categoryAmounts[category, default: 0] += transaction.amount
         }
         let categories = categoryAmounts.map { category, amount in
@@ -97,6 +97,16 @@ public enum SpendingAnalytics {
         calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
     }
 
+    public static func isConfirmedExpense(kind: TransactionKind, status: ImportStatus) -> Bool {
+        status == .ready && isExpense(kind)
+    }
+
+    public static func categoryName(for category: String?) -> String {
+        guard let category else { return "Uncategorized" }
+        let trimmedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedCategory.isEmpty ? "Uncategorized" : trimmedCategory
+    }
+
     private static func isExpense(_ kind: TransactionKind) -> Bool {
         switch kind {
         case .cardPurchase, .qrisPayment, .fee, .manualExpense:
@@ -104,12 +114,6 @@ public enum SpendingAnalytics {
         case .transferOut, .transferIn, .cashWithdrawal, .refund, .unknown:
             false
         }
-    }
-
-    private static func normalizedCategory(_ category: String?) -> String {
-        guard let category else { return "Uncategorized" }
-        let trimmedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmedCategory.isEmpty ? "Uncategorized" : trimmedCategory
     }
 
     private static func sortsCategoryTotals(_ lhs: SpendingCategoryTotal, _ rhs: SpendingCategoryTotal) -> Bool {

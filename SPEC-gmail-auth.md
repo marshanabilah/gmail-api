@@ -101,6 +101,8 @@ protocol GmailCredentialStore {
 - Request only `gmail.readonly`.
 - Store OAuth credentials in Keychain, never `UserDefaults`, SwiftData, source code, logs, or the repository.
 - Validate OAuth callback state before accepting a credential.
+- Attempt Keychain restoration at most once during an app session; a SwiftUI
+  view refresh must not start a second concurrent Google restoration.
 - Preserve all existing local transactions when connecting or disconnecting Gmail.
 - Test state transitions before a simulator sign-in check.
 

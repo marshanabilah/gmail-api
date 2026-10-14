@@ -23,6 +23,10 @@ grouped by the owner’s existing categories.
 - Group confirmed spending by its stored category and sort the largest amount
   first. A legacy ready record with no category is shown as `Uncategorized`;
   this is an analytics label, not a category the owner can select or save.
+- Let the owner open a category to inspect its matching confirmed transactions
+  in the selected month, and open the selected month's full activity list.
+  Full activity retains Review items with their status visible; category detail
+  does not include them.
 - Exclude transfers, refunds, cash withdrawals, and unknown kinds from these
   spending totals.
 
@@ -58,6 +62,8 @@ grouped by the owner’s existing categories.
 ## Success Criteria
 
 - The user can select the current month or a locally represented earlier month.
+- The user can inspect all local activity in the selected month and each
+  category's confirmed transactions in that month.
 - Confirmed spending excludes Review records, transfers, refunds, cash
   withdrawals, and transactions outside the selected calendar month.
 - Pending-review amount and count are shown independently for the selected
