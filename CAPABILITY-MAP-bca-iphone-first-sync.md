@@ -9,3 +9,5 @@
 Build order: `gmail-auth` -> `gmail-mailbox-sync` -> `bca-local-import`
 
 The app never creates labels or edits Gmail. The user creates and maintains the `Transaction` label and its Gmail filter. Its current bank-message candidates are BCA, Jago, and Livin' by Mandiri; Flip is excluded.
+
+The first downstream draft is [SPEC-bca-local-import.md](SPEC-bca-local-import.md). It intentionally limits writes to successful BCA QRIS payments, sends every new record to Review, and requires the owner's approval before one real Gmail scan.

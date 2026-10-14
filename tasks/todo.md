@@ -132,17 +132,17 @@ receipt structure before handing candidates to the importer.
 
 **Acceptance criteria:**
 
-- [ ] The contract uses only `gmail.readonly` and does not expose token values
+- [x] The contract uses only `gmail.readonly` and does not expose token values
   to the core module.
-- [ ] Fake-client tests cover label resolution, cutoff, pagination, repeated
+- [x] Fake-client tests cover label resolution, cutoff, pagination, repeated
   message IDs, a missing label, and retryable authorization/network failures.
-- [ ] Redacted BCA, Jago, Livin', Flip, and Flip-control fixtures prove that
+- [x] Redacted BCA, Jago, Livin', Flip, and Flip-control fixtures prove that
   only the confirmed Flip structure is excluded.
 
 **Verification:**
 
-- [ ] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
-- [ ] Manual check: inspect fixtures to confirm no real account, recipient,
+- [x] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
+- [x] Manual check: inspect fixtures to confirm no real account, recipient,
   transaction, or message identifiers appear.
 
 **Dependencies:** Approved `SPEC-gmail-mailbox-sync.md`; no live Google
@@ -166,18 +166,18 @@ label's messages, fetches each message once, and converts MIME content into a
 
 **Acceptance criteria:**
 
-- [ ] The adapter confirms current official Gmail API and Google Sign-In token
+- [x] The adapter confirms current official Gmail API and Google Sign-In token
   refresh guidance before implementation.
-- [ ] It decodes Base64URL plain-text and HTML-only multipart content without
+- [x] It decodes Base64URL plain-text and HTML-only multipart content without
   rendering remote content.
-- [ ] HTTP, malformed response, expired authorization, and rate-limit failures
+- [x] HTTP, malformed response, expired authorization, and rate-limit failures
   become typed recoverable mailbox failures with no local writes or sensitive
   logs.
 
 **Verification:**
 
-- [ ] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
-- [ ] Build succeeds: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ExpenseTracker.xcodeproj -scheme ExpenseTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/expense-tracker-derived CODE_SIGNING_ALLOWED=NO build`
+- [x] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
+- [x] Build succeeds: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ExpenseTracker.xcodeproj -scheme ExpenseTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/expense-tracker-derived CODE_SIGNING_ALLOWED=NO build`
 
 **Dependencies:** Task 7 and the existing `gmail-auth` adapter. No real Gmail
 scan occurs in this task.
@@ -193,10 +193,10 @@ scan occurs in this task.
 
 ## Checkpoint C: Mailbox foundation
 
-- [ ] Tasks 7 and 8 satisfy every core success criterion in
+- [x] Tasks 7 and 8 satisfy every core success criterion in
   `SPEC-gmail-mailbox-sync.md` that does not require a live account.
-- [ ] Core tests and the simulator build pass.
-- [ ] Review the token boundary and the redacted Flip fixture before UI wiring.
+- [x] Core tests and the simulator build pass.
+- [x] Review the token boundary and the redacted Flip fixture before UI wiring.
 
 ## 9. Wire a deliberate manual scan to an in-memory candidate result
 
@@ -207,18 +207,18 @@ records to SwiftData. The result is the handoff point for the later approved
 
 **Acceptance criteria:**
 
-- [ ] A Sync action is available only for a connected account and can run one
+- [x] A Sync action is available only for a connected account and can run one
   scan at a time.
-- [ ] Cancelled, unavailable, expired, and mailbox failures return to a clear
+- [x] Cancelled, unavailable, expired, and mailbox failures return to a clear
   retryable state without erasing manual records or categories.
-- [ ] A successful fake scan reports only a candidate count, never email body
+- [x] A successful fake scan reports only a candidate count, never email body
   text or sensitive details, and produces no local transaction records.
 
 **Verification:**
 
-- [ ] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
-- [ ] Build succeeds: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ExpenseTracker.xcodeproj -scheme ExpenseTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/expense-tracker-derived CODE_SIGNING_ALLOWED=NO build`
-- [ ] Manual check: use a fake client or preview state. Do not start a real
+- [x] Tests pass: `TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/expense-tracker-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/expense-tracker-clang-cache swift test`
+- [x] Build succeeds: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ExpenseTracker.xcodeproj -scheme ExpenseTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/expense-tracker-derived CODE_SIGNING_ALLOWED=NO build`
+- [x] Manual check: use a fake client or preview state. Do not start a real
   Gmail scan until Task 6 and the downstream import module are approved.
 
 **Dependencies:** Checkpoint C. A real-account verification additionally
@@ -235,9 +235,9 @@ depends on Task 6 and the approved `bca-local-import` plan.
 
 ## Checkpoint D: Mailbox handoff
 
-- [ ] Core tests and the simulator build pass.
-- [ ] The app can prove the manual-sync state using fakes without Gmail access.
-- [ ] No raw email content, Gmail metadata, or candidate is persisted by this
+- [x] Core tests and the simulator build pass.
+- [x] The app can prove the manual-sync state using fakes without Gmail access.
+- [x] No raw email content, Gmail metadata, or candidate is persisted by this
   module.
 - [ ] The user approves the downstream local-import plan before a real
   `Transaction` label scan.

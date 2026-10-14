@@ -14,10 +14,16 @@ enum SyncState: Equatable {
 final class SyncModel {
     var state: SyncState = .idle
     var showsConnectionSheet = false
+    var lastSyncCandidateCount: Int?
+    var canRetryMailboxSync = false
     private let auth: GmailAuthCoordinator
+    private let mailbox: GmailMailboxSyncCoordinator
 
     init() {
         auth = GmailAuthCoordinator(service: GoogleGmailAuthorizationService())
+        mailbox = GmailMailboxSyncCoordinator(
+            service: GmailMailboxScanner(client: GoogleGmailMailboxClient())
+        )
     }
 
     func restoreConnection() {
@@ -43,15 +49,53 @@ final class SyncModel {
     }
 
     func disconnect() {
+        lastSyncCandidateCount = nil
+        canRetryMailboxSync = false
         Task {
             await auth.disconnect()
             applyAuthenticationState()
         }
     }
 
+    func syncMailbox() {
+        guard case .connected = state else { return }
+        beginMailboxSync()
+    }
+
+    func retryMailboxSync() {
+        guard canRetryMailboxSync else { return }
+        beginMailboxSync()
+    }
+
     func dismissFailure() {
         if case .failed = state {
-            state = .idle
+            canRetryMailboxSync = false
+            applyAuthenticationState()
+        }
+    }
+
+    private func beginMailboxSync() {
+        guard case .connected = auth.state else { return }
+        canRetryMailboxSync = false
+        state = .syncing
+        Task {
+            await mailbox.sync(now: .now)
+            applyMailboxSyncState()
+        }
+    }
+
+    private func applyMailboxSyncState() {
+        switch mailbox.state {
+        case .idle:
+            applyAuthenticationState()
+        case .syncing:
+            state = .syncing
+        case .completed(let candidateCount):
+            lastSyncCandidateCount = candidateCount
+            applyAuthenticationState()
+        case .failed(let failure):
+            canRetryMailboxSync = true
+            state = .failed(message(for: failure))
         }
     }
 
@@ -82,6 +126,21 @@ final class SyncModel {
             "Gmail could not connect right now. Check your connection and try again."
         case .cancelled:
             ""
+        }
+    }
+
+    private func message(for failure: GmailMailboxFailure) -> String {
+        switch failure {
+        case .transactionLabelNotFound:
+            "Add a Gmail label named Transaction, then try again."
+        case .duplicateTransactionLabels:
+            "Gmail has more than one Transaction label. Rename one, then try again."
+        case .authorizationExpired:
+            "Your Gmail connection needs to be renewed. Connect Gmail again to continue."
+        case .unavailable:
+            "Gmail could not sync right now. Check your connection and try again."
+        case .malformedResponse:
+            "Gmail returned a message the app could not safely read. Try again later."
         }
     }
 }

@@ -29,15 +29,11 @@ struct DashboardView: View {
             Group {
                 if transactions.isEmpty {
                     ContentUnavailableView {
-                        Label("No imports yet", systemImage: "tray")
+                        Label(emptyStateTitle, systemImage: emptyStateSymbol)
                     } description: {
-                        Text("Connect Gmail, then sync bank transaction emails to start your ledger.")
+                        Text(emptyStateDescription)
                     } actions: {
-                        GoogleSignInButton(
-                            scheme: colorScheme == .dark ? .dark : .light,
-                            action: sync.start
-                        )
-                        .accessibilityLabel("Connect Gmail with Google")
+                        emptyStateAction
                     }
                 } else {
                     List {
@@ -54,6 +50,13 @@ struct DashboardView: View {
                                 TransactionRow(transaction: transaction)
                             }
                         }
+
+                        if let candidateCount = sync.lastSyncCandidateCount {
+                            Section("Gmail") {
+                                Text(candidateCountDescription(candidateCount))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
@@ -67,11 +70,21 @@ struct DashboardView: View {
                 ToolbarItem(placement: .primaryAction) {
                     switch sync.state {
                     case .connected:
-                        Button("Disconnect Gmail", systemImage: "person.crop.circle.badge.xmark") { showsDisconnectConfirmation = true }
+                        syncButton
                     case .connecting:
                         ProgressView()
-                    case .idle, .syncing, .failed:
+                    case .syncing:
+                        ProgressView()
+                            .accessibilityLabel("Syncing Gmail")
+                    case .failed where sync.canRetryMailboxSync:
+                        Button("Retry Gmail sync", systemImage: "arrow.clockwise") { sync.retryMailboxSync() }
+                    case .idle, .failed:
                         Button("Connect Gmail", systemImage: "envelope.badge") { sync.start() }
+                    }
+                }
+                if case .connected = sync.state {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Disconnect Gmail", systemImage: "person.crop.circle.badge.xmark") { showsDisconnectConfirmation = true }
                     }
                 }
             }
@@ -82,6 +95,73 @@ struct DashboardView: View {
         } message: {
             Text("This removes Gmail access from this iPhone. Your transactions and categories stay on the device.")
         }
+    }
+
+    private var emptyStateTitle: String {
+        switch sync.state {
+        case .connected:
+            "No imported transactions"
+        case .syncing:
+            "Checking Transaction"
+        case .failed:
+            "Gmail needs attention"
+        case .idle, .connecting:
+            "No imports yet"
+        }
+    }
+
+    private var emptyStateSymbol: String {
+        switch sync.state {
+        case .syncing:
+            "arrow.triangle.2.circlepath"
+        case .failed:
+            "exclamationmark.triangle"
+        case .idle, .connecting, .connected:
+            "tray"
+        }
+    }
+
+    private var emptyStateDescription: String {
+        switch sync.state {
+        case .connected:
+            if let candidateCount = sync.lastSyncCandidateCount {
+                return candidateCountDescription(candidateCount)
+            }
+            return "Sync your Transaction label to check bank transaction emails from the last 90 days."
+        case .syncing:
+            return "Reading the Transaction label. No transactions are added to the ledger yet."
+        case .failed:
+            return "Try syncing again, or connect Gmail again if access has expired."
+        case .idle, .connecting:
+            return "Connect Gmail, then sync bank transaction emails to start your ledger."
+        }
+    }
+
+    @ViewBuilder
+    private var emptyStateAction: some View {
+        switch sync.state {
+        case .connected:
+            syncButton
+        case .syncing:
+            ProgressView("Syncing Gmail")
+        case .failed where sync.canRetryMailboxSync:
+            Button("Retry Gmail sync", systemImage: "arrow.clockwise") { sync.retryMailboxSync() }
+        case .idle, .connecting, .failed:
+            GoogleSignInButton(
+                scheme: colorScheme == .dark ? .dark : .light,
+                action: sync.start
+            )
+            .accessibilityLabel("Connect Gmail with Google")
+        }
+    }
+
+    private var syncButton: some View {
+        Button("Sync Gmail", systemImage: "arrow.triangle.2.circlepath") { sync.syncMailbox() }
+            .accessibilityHint("Reads the Transaction label for the last 90 days")
+    }
+
+    private func candidateCountDescription(_ count: Int) -> String {
+        "\(count) eligible \(count == 1 ? "email was" : "emails were") found. They have not been added to the ledger yet."
     }
 }
 

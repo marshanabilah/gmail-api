@@ -168,22 +168,22 @@ sign-in verification in Task 6 and the later local-import implementation.
 
 ### Phase: Mailbox foundation
 
-- [ ] Task 7: Define and test the mailbox scan contract
-- [ ] Task 8: Add the iOS Gmail REST adapter and MIME decoder
+- [x] Task 7: Define and test the mailbox scan contract
+- [x] Task 8: Add the iOS Gmail REST adapter and MIME decoder
 
 ### Checkpoint: Mailbox foundation
 
-- [ ] Core tests pass and the simulator build succeeds
-- [ ] Review the transport boundary before exposing manual sync in the UI
+- [x] Core tests pass and the simulator build succeeds
+- [x] Review the transport boundary before exposing manual sync in the UI
 
 ### Phase: Manual scan handoff
 
-- [ ] Task 9: Wire a deliberate manual scan to an in-memory candidate result
+- [x] Task 9: Wire a deliberate manual scan to an in-memory candidate result
 
 ### Checkpoint: Mailbox handoff
 
-- [ ] Unit tests cover the manual scan state without real Gmail
-- [ ] No candidate is persisted outside the later `bca-local-import` module
+- [x] Unit tests cover the manual scan state without real Gmail
+- [x] No candidate is persisted outside the later `bca-local-import` module
 - [ ] Human approves the downstream import plan before a real mailbox scan
 
 ## Risks and Mitigations

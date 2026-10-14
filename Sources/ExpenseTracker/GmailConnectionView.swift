@@ -11,7 +11,7 @@ struct GmailConnectionView: View {
                     Text("The app requests Gmail read-only access. It does not modify or delete mail.")
                 }
                 Section("First import") {
-                    Text("After sign-in is configured, the first mailbox feature will read the Ledger/BCA label for the last 90 days. This screen does not start that import yet.")
+                    Text("After sign-in is configured, sync reads the Transaction label for the last 90 days. It does not change or delete your email.")
                 }
             }
             .navigationTitle("Connect Gmail")

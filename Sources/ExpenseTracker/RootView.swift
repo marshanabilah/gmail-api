@@ -33,6 +33,9 @@ struct RootView: View {
             get: { if case .failed = sync.state { return true }; return false },
             set: { if !$0 { sync.dismissFailure() } }
         )) {
+            if sync.canRetryMailboxSync {
+                Button("Retry sync") { sync.retryMailboxSync() }
+            }
             Button("OK", role: .cancel) { sync.dismissFailure() }
         } message: {
             if case .failed(let message) = sync.state {
