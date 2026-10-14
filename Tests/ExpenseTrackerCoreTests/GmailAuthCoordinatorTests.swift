@@ -76,6 +76,15 @@ final class GmailAuthCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.state, .failed(.credentialInvalid))
     }
 
+    func testAuthorizeReportsSecureStorageUnavailable() async {
+        let service = FakeGmailAuthorizationService(authorizationResult: .failure(.secureStorageUnavailable))
+        let coordinator = GmailAuthCoordinator(service: service)
+
+        await coordinator.connect()
+
+        XCTAssertEqual(coordinator.state, .failed(.secureStorageUnavailable))
+    }
+
     func testDisconnectClearsTheConnectedState() async {
         let account = GmailAuthorizedAccount(
             identifier: "google-user-1",

@@ -25,6 +25,7 @@ public enum GmailAuthorizationFailure: Error, Equatable, Sendable {
     case configurationMissing
     case callbackMismatch
     case credentialInvalid
+    case secureStorageUnavailable
     case requiredScopeNotGranted
     case unavailable
 }

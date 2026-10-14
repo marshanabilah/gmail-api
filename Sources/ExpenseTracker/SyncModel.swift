@@ -69,8 +69,12 @@ final class SyncModel {
 
     func dismissFailure() {
         if case .failed = state {
-            canRetryMailboxSync = false
-            applyAuthenticationState()
+            if canRetryMailboxSync {
+                canRetryMailboxSync = false
+                applyAuthenticationState()
+            } else {
+                state = .idle
+            }
         }
     }
 
@@ -120,6 +124,8 @@ final class SyncModel {
             "Google returned to an unexpected callback. Check the iOS redirect scheme and try again."
         case .credentialInvalid:
             "Your Gmail connection needs to be renewed. Connect Gmail again to continue."
+        case .secureStorageUnavailable:
+            "This simulator build cannot save the Gmail connection yet. In Xcode, choose your Apple Development Team under Signing & Capabilities, then run the app again."
         case .requiredScopeNotGranted:
             "Gmail read-only access was not granted. Connect again and allow read-only access to continue."
         case .unavailable:

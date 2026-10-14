@@ -105,6 +105,7 @@ final class GoogleGmailAuthorizationService: GmailAuthorizationService {
             return .unavailable
         }
         switch nsError?.code {
+        case -2: return .secureStorageUnavailable
         case -5: return .cancelled
         case -9: return .callbackMismatch
         case -11: return .credentialInvalid
