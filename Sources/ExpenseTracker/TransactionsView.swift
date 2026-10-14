@@ -4,6 +4,7 @@ import SwiftUI
 struct TransactionsView: View {
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     @State private var showsManualEntry = false
+    @State private var transactionBeingEdited: TransactionRecord?
 
     var body: some View {
         NavigationStack {
@@ -12,7 +13,13 @@ struct TransactionsView: View {
                     ContentUnavailableView("No transactions", systemImage: "list.bullet.rectangle", description: Text("Run a Gmail sync to see imported transaction emails here."))
                 } else {
                     ForEach(transactions) { transaction in
-                        TransactionRow(transaction: transaction)
+                        Button {
+                            transactionBeingEdited = transaction
+                        } label: {
+                            TransactionRow(transaction: transaction)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Edit category for \(transaction.merchant)")
                     }
                 }
             }
@@ -27,6 +34,9 @@ struct TransactionsView: View {
         }
         .sheet(isPresented: $showsManualEntry) {
             ManualTransactionView()
+        }
+        .sheet(item: $transactionBeingEdited) { transaction in
+            TransactionCategoryEditor(transaction: transaction)
         }
     }
 }
@@ -188,6 +198,102 @@ struct NewCategoryView: View {
             dismiss()
         } catch {
             validationMessage = "Could not save this category. Try again."
+        }
+    }
+}
+
+struct TransactionCategoryEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
+    @Query private var merchantRules: [MerchantRuleRecord]
+    let transaction: TransactionRecord
+
+    @State private var category: String
+    @State private var remembersMerchant = false
+    @State private var showsNewCategory = false
+    @State private var validationMessage: String?
+
+    init(transaction: TransactionRecord) {
+        self.transaction = transaction
+        _category = State(initialValue: transaction.category ?? "Food & drink")
+    }
+
+    private var categories: [String] {
+        ExpenseCategory.availableNames(
+            savedNames: savedCategories.map(\.name) + [transaction.category].compactMap { $0 }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Transaction") {
+                    Text(transaction.merchant)
+                    LabeledContent("Amount", value: transaction.amount, format: .currency(code: "IDR"))
+                }
+
+                Section("Category") {
+                    Picker("Category", selection: $category) {
+                        ForEach(categories, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
+                    Button("Add category", systemImage: "plus") {
+                        showsNewCategory = true
+                    }
+                }
+
+                Section {
+                    Toggle("Use for future transactions from this merchant", isOn: $remembersMerchant)
+                } footer: {
+                    Text("This does not recategorize transactions you already saved.")
+                }
+
+                if let validationMessage {
+                    Section {
+                        Text(validationMessage)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Edit category")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+        }
+        .sheet(isPresented: $showsNewCategory) {
+            NewCategoryView(existingNames: categories) { newCategory in
+                category = newCategory
+            }
+        }
+    }
+
+    private func save() {
+        transaction.category = category
+        if transaction.status == ImportStatus.needsReview.rawValue {
+            transaction.status = ImportStatus.ready.rawValue
+        }
+        if remembersMerchant {
+            if let existingRule = merchantRules.first(where: {
+                $0.merchantContains.caseInsensitiveCompare(transaction.merchant) == .orderedSame
+            }) {
+                existingRule.category = category
+            } else {
+                modelContext.insert(MerchantRuleRecord(merchantContains: transaction.merchant, category: category))
+            }
+        }
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            validationMessage = "Could not save the category. Try again."
         }
     }
 }

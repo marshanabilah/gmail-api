@@ -27,6 +27,10 @@ grouped by the owner’s existing categories.
   in the selected month, and open the selected month's full activity list.
   Full activity retains Review items with their status visible; category detail
   does not include them.
+- Let the owner edit an individual transaction's category from either detail
+  list. Saving a correction affects that record only. The owner may explicitly
+  opt in to remember the category for future imports from the same merchant;
+  this never recategorizes historical records.
 - Exclude transfers, refunds, cash withdrawals, and unknown kinds from these
   spending totals.
 

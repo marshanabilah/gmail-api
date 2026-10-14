@@ -355,6 +355,7 @@ private struct MonthlyTransactionDetailView: View {
     let month: Date
     let category: String?
     let transactions: [TransactionRecord]
+    @State private var transactionBeingEdited: TransactionRecord?
 
     private var filteredTransactions: [TransactionRecord] {
         transactions.filter { transaction in
@@ -379,12 +380,21 @@ private struct MonthlyTransactionDetailView: View {
                 )
             } else {
                 ForEach(filteredTransactions) { transaction in
-                    TransactionRow(transaction: transaction)
+                    Button {
+                        transactionBeingEdited = transaction
+                    } label: {
+                        TransactionRow(transaction: transaction)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit category for \(transaction.merchant)")
                 }
             }
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $transactionBeingEdited) { transaction in
+            TransactionCategoryEditor(transaction: transaction)
+        }
     }
 
     private var navigationTitle: String {
