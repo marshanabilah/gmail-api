@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class GmailMailboxSyncCoordinatorTests: XCTestCase {
-    func testSyncReportsCandidateCountWithoutExposingCandidateContent() async {
+    func testSyncKeepsCandidatesInMemoryForTheApprovedLocalImporter() async {
         let service = FakeMailboxSyncService(
             result: .success(
                 GmailMailboxScanResult(
@@ -20,6 +20,7 @@ final class GmailMailboxSyncCoordinatorTests: XCTestCase {
         await coordinator.sync(now: .now)
 
         XCTAssertEqual(coordinator.state, .completed(candidateCount: 2))
+        XCTAssertEqual(coordinator.latestCandidates.map(\.messageID), ["bca-1", "jago-1"])
     }
 
     func testSyncReportsFailureAndAllowsAnotherAttempt() async {
@@ -30,6 +31,7 @@ final class GmailMailboxSyncCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(coordinator.state, .failed(.unavailable))
         XCTAssertEqual(service.scanCount, 1)
+        XCTAssertTrue(coordinator.latestCandidates.isEmpty)
     }
 }
 

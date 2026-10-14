@@ -232,18 +232,40 @@ public struct BCAEmailParser: BankEmailParsing {
     }
 
     private func tableFields(in body: String) -> [String: String] {
-        body
+        let lines = body
             .replacingOccurrences(of: "\u{00A0}", with: " ")
             .split(whereSeparator: \.isNewline)
-            .reduce(into: [String: String]()) { fields, line in
-                let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
-                guard parts.count == 2 else { return }
-                let key = parts[0].trimmingCharacters(in: .whitespaces)
-                let value = parts[1].trimmingCharacters(in: .whitespaces)
-                if !key.isEmpty, !value.isEmpty {
+            .map { line in
+                line
+                    .replacingOccurrences(of: "|", with: " ")
+                    .trimmingCharacters(in: .whitespaces)
+            }
+
+        let labels = ["Status", "Transaction Date", "Transaction Type", "Payment to", "Total Payment"]
+        var fields = [String: String]()
+
+        for (index, line) in lines.enumerated() {
+            let inlineParts = line.split(separator: ":", maxSplits: 1).map(String.init)
+            if inlineParts.count == 2 {
+                let key = inlineParts[0].trimmingCharacters(in: .whitespaces)
+                let value = inlineParts[1].trimmingCharacters(in: .whitespaces)
+                if labels.contains(key), !value.isEmpty {
                     fields[key] = value
                 }
             }
+
+            guard labels.contains(line) else { continue }
+            var valueIndex = index + 1
+            while lines.indices.contains(valueIndex), lines[valueIndex].isEmpty || lines[valueIndex] == ":" {
+                valueIndex += 1
+            }
+            guard lines.indices.contains(valueIndex) else { continue }
+            let value = lines[valueIndex]
+            guard !labels.contains(value), !value.isEmpty else { continue }
+            fields[line] = value
+        }
+
+        return fields
     }
 
     private func rupiahAmount(from value: String) -> Decimal? {

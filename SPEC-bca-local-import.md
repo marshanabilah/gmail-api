@@ -1,4 +1,4 @@
-# Draft Spec: BCA Local Import to Review
+# Spec: BCA Local Import to Review
 
 Module id: `bca-local-import`
 
@@ -31,7 +31,8 @@ excluded upstream by `gmail-mailbox-sync` and must never arrive here.
    move the transaction out of Review through a separately specified action.
 
 The Sync action does not create records until this module is implemented and
-the owner explicitly approves one real `Transaction` label scan.
+the owner explicitly confirms the local Review import after a real
+`Transaction` label scan.
 
 ## Accepted BCA Email Shape
 

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftData
 
 enum SyncState: Equatable {
     case idle
@@ -65,6 +66,51 @@ final class SyncModel {
     func retryMailboxSync() {
         guard canRetryMailboxSync else { return }
         beginMailboxSync()
+    }
+
+    func bcaReviewPreview(
+        existingMessageIDs: Set<String>,
+        existingFingerprints: Set<String>,
+        rules: [MerchantRule]
+    ) -> BCAReviewImportResult? {
+        guard !mailbox.latestCandidates.isEmpty else { return nil }
+        return BCAReviewImporter().importCandidates(
+            mailbox.latestCandidates,
+            existingMessageIDs: existingMessageIDs,
+            existingFingerprints: existingFingerprints,
+            rules: rules
+        )
+    }
+
+    func saveBCAReviewImports(_ preview: BCAReviewImportResult, in modelContext: ModelContext) -> Bool {
+        var records = [TransactionRecord]()
+        for imported in preview.imports {
+            let draft = imported.draft
+            let record = TransactionRecord(
+                sourceMessageID: draft.sourceMessageID,
+                fingerprint: draft.fingerprint,
+                bankID: draft.bankID,
+                occurredAt: draft.occurredAt,
+                merchant: draft.merchant,
+                amount: draft.amount,
+                kind: draft.kind.rawValue,
+                confidence: draft.confidence,
+                category: imported.category,
+                status: imported.status.rawValue
+            )
+            records.append(record)
+            modelContext.insert(record)
+        }
+
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            for record in records {
+                modelContext.delete(record)
+            }
+            return false
+        }
     }
 
     func dismissFailure() {

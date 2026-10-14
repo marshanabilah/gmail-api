@@ -5,8 +5,11 @@ import GoogleSignInSwift
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
+    @Query private var merchantRuleRecords: [MerchantRuleRecord]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showsDisconnectConfirmation = false
+    @State private var bcaImportPreview: BCAReviewImportResult?
+    @State private var bcaImportSummary: String?
     let sync: SyncModel
     let openSettings: () -> Void
 
@@ -55,6 +58,14 @@ struct DashboardView: View {
                             Section("Gmail") {
                                 Text(candidateCountDescription(candidateCount))
                                     .foregroundStyle(.secondary)
+                                Button("Prepare BCA for review", systemImage: "checklist") {
+                                    prepareBCAImport()
+                                }
+                                if let bcaImportSummary {
+                                    Text(bcaImportSummary)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -94,6 +105,25 @@ struct DashboardView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes Gmail access from this iPhone. Your transactions and categories stay on the device.")
+        }
+        .confirmationDialog(
+            "Add BCA transactions to Review?",
+            isPresented: Binding(
+                get: { bcaImportPreview != nil },
+                set: { if !$0 { bcaImportPreview = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let bcaImportPreview {
+                Button("Add \(bcaImportPreview.imports.count) to Review") {
+                    saveBCAImport(bcaImportPreview)
+                }
+            }
+            Button("Cancel", role: .cancel) { bcaImportPreview = nil }
+        } message: {
+            if let bcaImportPreview {
+                Text(bcaImportConfirmationMessage(bcaImportPreview))
+            }
         }
     }
 
@@ -162,6 +192,50 @@ struct DashboardView: View {
 
     private func candidateCountDescription(_ count: Int) -> String {
         "\(count) eligible \(count == 1 ? "email was" : "emails were") found. They have not been added to the ledger yet."
+    }
+
+    private func prepareBCAImport() {
+        let preview = sync.bcaReviewPreview(
+            existingMessageIDs: Set(transactions.map(\.sourceMessageID)),
+            existingFingerprints: Set(transactions.map(\.fingerprint)),
+            rules: merchantRules
+        )
+        guard let preview else {
+            bcaImportSummary = "Sync Gmail again before preparing transactions for Review."
+            return
+        }
+        guard !preview.imports.isEmpty else {
+            bcaImportSummary = "No new successful BCA QRIS payments were ready for Review. Other emails were left untouched."
+            return
+        }
+        bcaImportPreview = preview
+    }
+
+    private var merchantRules: [MerchantRule] {
+        merchantRuleRecords.map {
+            MerchantRule(merchantContains: $0.merchantContains, category: $0.category)
+        }
+    }
+
+    private func saveBCAImport(_ preview: BCAReviewImportResult) {
+        if sync.saveBCAReviewImports(preview, in: modelContext) {
+            bcaImportSummary = "Added \(preview.imports.count) BCA \(preview.imports.count == 1 ? "payment" : "payments") to Review."
+        } else {
+            bcaImportSummary = "The BCA payments were not saved. Your existing ledger was left unchanged."
+        }
+        bcaImportPreview = nil
+    }
+
+    private func bcaImportConfirmationMessage(_ preview: BCAReviewImportResult) -> String {
+        var details = ["Every item will start in Review, not your ledger."]
+        if preview.duplicateCount > 0 {
+            details.append("\(preview.duplicateCount) duplicate \(preview.duplicateCount == 1 ? "email was" : "emails were") skipped.")
+        }
+        let leftUntouched = preview.ignoredCount + preview.unsupportedCount
+        if leftUntouched > 0 {
+            details.append("\(leftUntouched) other \(leftUntouched == 1 ? "email was" : "emails were") left untouched.")
+        }
+        return details.joined(separator: " ")
     }
 }
 

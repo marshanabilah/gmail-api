@@ -239,5 +239,30 @@ depends on Task 6 and the approved `bca-local-import` plan.
 - [x] The app can prove the manual-sync state using fakes without Gmail access.
 - [x] No raw email content, Gmail metadata, or candidate is persisted by this
   module.
-- [ ] The user approves the downstream local-import plan before a real
+- [x] The user approves the downstream local-import plan before a real
   `Transaction` label scan.
+
+---
+
+## BCA Local Import to Review
+
+### 10. Parse and stage successful BCA QRIS payments
+
+- [x] Add a core-only importer for successful BCA QRIS payment candidates.
+- [x] Keep failed, malformed, non-BCA, and duplicate candidates out of local
+  records.
+- [x] Apply an existing merchant rule when present, while keeping every BCA
+  import in `needsReview`.
+- [x] Preserve candidates only in memory between the manual scan and the
+  explicit local import confirmation.
+- [x] Add a Review import confirmation that states how many BCA payments will
+  be saved and that all other emails remain untouched.
+- [ ] Complete the owner-confirmed first local import from the real
+  `Transaction` label.
+
+Verification:
+
+- [x] Core unit tests cover valid BCA QRIS input, failed status, missing
+  fields, duplicate IDs/fingerprints, merchant rules, and mixed candidates.
+- [x] Full core test suite passes.
+- [x] Signed simulator build succeeds.

@@ -27,6 +27,7 @@
 		A00000000000000000000018 /* GmailMailbox/GmailMessageBodyDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000119 /* GmailMailbox/GmailMessageBodyDecoder.swift */; };
 		A00000000000000000000019 /* GmailMailbox/GoogleGmailMailboxClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000120 /* GmailMailbox/GoogleGmailMailboxClient.swift */; };
 		A00000000000000000000020 /* GmailMailbox/GmailMailboxSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000121 /* GmailMailbox/GmailMailboxSyncCoordinator.swift */; };
+		A00000000000000000000021 /* BCAReviewImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000122 /* BCAReviewImporter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +50,7 @@
 		A00000000000000000000119 /* GmailMailbox/GmailMessageBodyDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailMailbox/GmailMessageBodyDecoder.swift; sourceTree = "<group>"; };
 		A00000000000000000000120 /* GmailMailbox/GoogleGmailMailboxClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailMailbox/GoogleGmailMailboxClient.swift; sourceTree = "<group>"; };
 		A00000000000000000000121 /* GmailMailbox/GmailMailboxSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GmailMailbox/GmailMailboxSyncCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000122 /* BCAReviewImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BCAReviewImporter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +103,7 @@
 				A00000000000000000000118 /* GmailMailbox/GmailMailboxScanner.swift */,
 				A00000000000000000000119 /* GmailMailbox/GmailMessageBodyDecoder.swift */,
 				A00000000000000000000121 /* GmailMailbox/GmailMailboxSyncCoordinator.swift */,
+				A00000000000000000000122 /* BCAReviewImporter.swift */,
 			);
 			path = Sources/ExpenseTrackerCore;
 			sourceTree = SOURCE_ROOT;
@@ -205,6 +208,7 @@
 				A00000000000000000000018 /* GmailMailbox/GmailMessageBodyDecoder.swift in Sources */,
 				A00000000000000000000019 /* GmailMailbox/GoogleGmailMailboxClient.swift in Sources */,
 				A00000000000000000000020 /* GmailMailbox/GmailMailboxSyncCoordinator.swift in Sources */,
+				A00000000000000000000021 /* BCAReviewImporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
