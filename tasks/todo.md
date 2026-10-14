@@ -256,6 +256,15 @@ depends on Task 6 and the approved `bca-local-import` plan.
 - [x] Let a user-selected or newly created Review category accept that item
   immediately and update its local merchant rule; require Accept for a
   system-suggested category.
+
+## Monthly Spending Analytics
+
+- [x] Specify month-scoped confirmed spending, separate pending-review totals,
+  and category breakdowns in `SPEC-spending-analytics.md`.
+- [x] Add a core-only analytics calculation with unit tests for month filtering,
+  spending kinds, Review separation, and category grouping.
+- [x] Add a Dashboard month picker and category breakdown that read the core
+  result without altering local transaction records.
 - [x] Preserve candidates only in memory between the manual scan and the
   explicit local import confirmation.
 - [x] Add a Review import confirmation that states how many BCA payments will

@@ -10,21 +10,32 @@ struct DashboardView: View {
     @State private var showsDisconnectConfirmation = false
     @State private var bcaImportPreview: BCAReviewImportResult?
     @State private var bcaImportSummary: String?
+    @State private var selectedMonth = SpendingAnalytics.monthStart(for: .now)
     let sync: SyncModel
     let openSettings: () -> Void
 
+    private var analyticsInputs: [SpendingAnalyticsInput] {
+        transactions.map {
+            SpendingAnalyticsInput(
+                occurredAt: $0.occurredAt,
+                amount: $0.amount,
+                kind: TransactionKind(rawValue: $0.kind) ?? .unknown,
+                category: $0.category,
+                status: ImportStatus(rawValue: $0.status) ?? .needsReview
+            )
+        }
+    }
+
+    private var availableMonths: [Date] {
+        SpendingAnalytics.availableMonths(transactions: analyticsInputs)
+    }
+
+    private var monthlySummary: MonthlySpendingSummary {
+        SpendingAnalytics.summary(for: selectedMonth, transactions: analyticsInputs)
+    }
+
     private var monthTransactions: [TransactionRecord] {
-        transactions.filter { Calendar.current.isDate($0.occurredAt, equalTo: .now, toGranularity: .month) }
-    }
-
-    private var spending: Decimal {
-        monthTransactions
-            .filter { ["cardPurchase", "qrisPayment", "fee", "manualExpense"].contains($0.kind) }
-            .reduce(0) { $0 + $1.amount }
-    }
-
-    private var reviewCount: Int {
-        transactions.filter { $0.status == "needsReview" }.count
+        transactions.filter { Calendar.current.isDate($0.occurredAt, equalTo: selectedMonth, toGranularity: .month) }
     }
 
     var body: some View {
@@ -40,15 +51,34 @@ struct DashboardView: View {
                     }
                 } else {
                     List {
-                        Section("This month") {
-                            LabeledContent("Spending", value: spending, format: .currency(code: "IDR"))
-                            if reviewCount > 0 {
-                                LabeledContent("Needs review", value: "\(reviewCount)")
+                        Section("Spending") {
+                            Picker("Month", selection: $selectedMonth) {
+                                ForEach(availableMonths, id: \.self) { month in
+                                    Text(month.formatted(.dateTime.year().month(.wide))).tag(month)
+                                }
+                            }
+                            LabeledContent("Confirmed spending", value: monthlySummary.confirmedSpending, format: .currency(code: "IDR"))
+                            if monthlySummary.pendingReviewCount > 0 {
+                                LabeledContent("Pending review", value: monthlySummary.pendingReviewAmount, format: .currency(code: "IDR"))
                                     .foregroundStyle(.orange)
+                                Text("\(monthlySummary.pendingReviewCount) \(monthlySummary.pendingReviewCount == 1 ? "transaction still needs" : "transactions still need") your confirmation.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
                         }
 
-                        Section("Recent imports") {
+                        Section("By category") {
+                            if monthlySummary.categories.isEmpty {
+                                Text("No confirmed spending for this month.")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(monthlySummary.categories, id: \.category) { category in
+                                    LabeledContent(category.category, value: category.amount, format: .currency(code: "IDR"))
+                                }
+                            }
+                        }
+
+                        Section("Activity") {
                             ForEach(monthTransactions.prefix(5)) { transaction in
                                 TransactionRow(transaction: transaction)
                             }
