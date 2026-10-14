@@ -61,11 +61,12 @@ TASK_CLANG_CACHE=/private/tmp/expense-tracker-clang-cache SWIFTPM_MODULECACHE_OV
 ## Project Structure
 
 ```text
-Sources/ExpenseTracker/SyncModel.swift          -> Connection state consumed by the UI
-Sources/ExpenseTracker/GmailConnectionView.swift -> Connection, consent, error, and disconnect UI
-Sources/ExpenseTracker/GmailAuth/               -> OAuth client, callback validation, credential store
-Tests/ExpenseTrackerTests/                      -> iOS unit tests for auth state and credential-store seams
-SPEC-gmail-auth.md                              -> This module's approved requirements
+Sources/ExpenseTracker/SyncModel.swift                  -> Connection state consumed by the UI
+Sources/ExpenseTracker/GoogleGmailAuthorizationService.swift -> Google Sign-In adapter and Keychain-backed session
+Sources/ExpenseTracker/GmailConnectionView.swift        -> Connection, consent, error, and disconnect UI
+Sources/ExpenseTrackerCore/GmailAuthCoordinator.swift   -> Testable auth state machine and protocol
+Tests/ExpenseTrackerCoreTests/GmailAuthCoordinatorTests.swift -> Core auth-state tests with fakes
+SPEC-gmail-auth.md                                      -> This module's approved requirements
 ```
 
 ## Code Style
@@ -86,10 +87,11 @@ protocol GmailCredentialStore {
 
 ## Testing Strategy
 
-- Add an iOS XCTest target before production OAuth code.
-- Unit-test the auth state machine with fake OAuth and Keychain dependencies.
+- Use the Swift package XCTest target to unit-test the auth state machine with
+  fake authorization dependencies.
 - Unit-test that a credential survives an app-model recreation and that disconnect removes only the credential.
-- Test configuration failures, user cancellation, callback state mismatch, and expired or invalid credentials without using a real Google account.
+- Test configuration failures, user cancellation, callback state mismatch, and
+  expired or invalid credentials without using a real Google account.
 - Use the iOS Simulator for the first end-to-end sign-in and callback check. Use one physical-device test only after the simulator flow works.
 
 ## Boundaries

@@ -28,6 +28,14 @@ public enum GmailMailboxFailure: Error, Equatable, Sendable {
     case malformedResponse
 }
 
+public enum GmailTokenRefreshFailureClassifier {
+    public static func mailboxFailure(errorDomain: String?, errorCode: Int?) -> GmailMailboxFailure {
+        errorDomain == "com.google.GIDSignIn" && errorCode == -11
+            ? .authorizationExpired
+            : .unavailable
+    }
+}
+
 public protocol GmailMailboxClient: Sendable {
     func listLabels() async throws(GmailMailboxFailure) -> [GmailLabel]
     func messagePage(

@@ -105,7 +105,7 @@ final class BCAReviewImportTests: XCTestCase {
         XCTAssertEqual(result.duplicateCount, 1)
     }
 
-    func testMatchingMerchantRuleSetsCategoryButKeepsItemInReview() {
+    func testMatchingMerchantRuleSuggestsCategoryButKeepsBCAItemInReview() {
         let result = BCAReviewImporter().importCandidates(
             [bcaEmail(id: "bca-rule", merchant: "Example Market")],
             existingMessageIDs: [],
@@ -114,6 +114,18 @@ final class BCAReviewImportTests: XCTestCase {
         )
 
         XCTAssertEqual(result.imports.first?.category, "Food & drink")
+        XCTAssertEqual(result.imports.first?.status, .needsReview)
+    }
+
+    func testUncategorizedBCAItemStaysInReview() {
+        let result = BCAReviewImporter().importCandidates(
+            [bcaEmail(id: "bca-no-rule", merchant: "New Merchant")],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: []
+        )
+
+        XCTAssertNil(result.imports.first?.category)
         XCTAssertEqual(result.imports.first?.status, .needsReview)
     }
 

@@ -22,14 +22,31 @@ struct ReviewView: View {
                     ForEach(transactions) { transaction in
                         Section {
                             TransactionRow(transaction: transaction)
-                            Menu("Choose category") {
+                            if transaction.category != nil {
+                                Button {
+                                    accept(transaction)
+                                } label: {
+                                    Label("Accept", systemImage: "checkmark.circle.fill")
+                                }
+                                .tint(.green)
+                            }
+                            Menu {
                                 ForEach(categories, id: \.self) { category in
-                                    Button(category) { approve(transaction, as: category) }
+                                    Button {
+                                        chooseCategory(transaction, as: category)
+                                    } label: {
+                                        Label(
+                                            category,
+                                            systemImage: transaction.category == category ? "checkmark" : "circle"
+                                        )
+                                    }
                                 }
                                 Divider()
                                 Button("Add category", systemImage: "plus") {
                                     transactionAwaitingCategory = transaction
                                 }
+                            } label: {
+                                Label(transaction.category ?? "Choose category", systemImage: "tag")
                             }
                         } header: {
                             Text("Import confidence \(Int(transaction.confidence * 100))%")
@@ -40,7 +57,7 @@ struct ReviewView: View {
             .navigationTitle("Review")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Apply saved categories", systemImage: "wand.and.stars") {
+                    Button("Match saved categories", systemImage: "arrow.triangle.branch") {
                         applySavedCategories()
                     }
                     .disabled(merchantRules.isEmpty)
@@ -60,13 +77,19 @@ struct ReviewView: View {
         }
         .sheet(item: $transactionAwaitingCategory) { transaction in
             NewCategoryView(existingNames: categories) { newCategory in
-                approve(transaction, as: newCategory)
+                chooseCategory(transaction, as: newCategory)
             }
         }
     }
 
-    private func approve(_ transaction: TransactionRecord, as category: String) {
+    private func chooseCategory(_ transaction: TransactionRecord, as category: String) {
         transaction.category = category
+        categoryUpdateSummary = nil
+        accept(transaction)
+    }
+
+    private func accept(_ transaction: TransactionRecord) {
+        guard let category = transaction.category else { return }
         transaction.status = "ready"
         let rule: MerchantRuleRecord
         if let existingRule = merchantRules.first(where: {
@@ -110,7 +133,7 @@ struct ReviewView: View {
             try? modelContext.save()
         }
         categoryUpdateSummary = updatedCount == 1
-            ? "Added a saved category to 1 item. It still needs your review."
-            : "Added saved categories to \(updatedCount) items. They still need your review."
+            ? "Matched 1 item. Tap Accept when it looks right."
+            : "Matched \(updatedCount) items. Tap Accept when they look right."
     }
 }

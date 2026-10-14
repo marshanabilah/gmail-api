@@ -251,13 +251,16 @@ depends on Task 6 and the approved `bca-local-import` plan.
 - [x] Add a core-only importer for successful BCA QRIS payment candidates.
 - [x] Keep failed, malformed, non-BCA, and duplicate candidates out of local
   records.
-- [x] Apply an existing merchant rule when present, while keeping every BCA
-  import in `needsReview`.
+- [x] Apply an existing merchant rule as a category suggestion while keeping
+  every BCA import in `needsReview`.
+- [x] Let a user-selected or newly created Review category accept that item
+  immediately and update its local merchant rule; require Accept for a
+  system-suggested category.
 - [x] Preserve candidates only in memory between the manual scan and the
   explicit local import confirmation.
 - [x] Add a Review import confirmation that states how many BCA payments will
   be saved and that all other emails remain untouched.
-- [ ] Complete the owner-confirmed first local import from the real
+- [x] Complete the owner-confirmed first local import from the real
   `Transaction` label.
 
 Verification:

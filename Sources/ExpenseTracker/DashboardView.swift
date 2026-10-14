@@ -58,7 +58,7 @@ struct DashboardView: View {
                             Section("Gmail") {
                                 Text(candidateCountDescription(candidateCount))
                                     .foregroundStyle(.secondary)
-                                Button("Prepare BCA for review", systemImage: "checklist") {
+                                Button("Import BCA payments", systemImage: "tray.and.arrow.down") {
                                     prepareBCAImport()
                                 }
                                 if let bcaImportSummary {
@@ -107,7 +107,7 @@ struct DashboardView: View {
             Text("This removes Gmail access from this iPhone. Your transactions and categories stay on the device.")
         }
         .confirmationDialog(
-            "Add BCA transactions to Review?",
+            "Import BCA payments?",
             isPresented: Binding(
                 get: { bcaImportPreview != nil },
                 set: { if !$0 { bcaImportPreview = nil } }
@@ -115,7 +115,7 @@ struct DashboardView: View {
             titleVisibility: .visible
         ) {
             if let bcaImportPreview {
-                Button("Add \(bcaImportPreview.imports.count) to Review") {
+                Button("Import \(bcaImportPreview.imports.count) payments") {
                     saveBCAImport(bcaImportPreview)
                 }
             }
@@ -205,7 +205,7 @@ struct DashboardView: View {
             return
         }
         guard !preview.imports.isEmpty else {
-            bcaImportSummary = "No new successful BCA QRIS payments were ready for Review. Other emails were left untouched."
+            bcaImportSummary = "No new successful BCA QRIS payments were ready to import. Other emails were left untouched."
             return
         }
         bcaImportPreview = preview
@@ -227,7 +227,7 @@ struct DashboardView: View {
     }
 
     private func bcaImportConfirmationMessage(_ preview: BCAReviewImportResult) -> String {
-        var details = ["Every item will start in Review, not your ledger."]
+        var details = ["Every payment will start in Review. Saved category rules can suggest a category, but you decide when to accept it."]
         if preview.duplicateCount > 0 {
             details.append("\(preview.duplicateCount) duplicate \(preview.duplicateCount == 1 ? "email was" : "emails were") skipped.")
         }

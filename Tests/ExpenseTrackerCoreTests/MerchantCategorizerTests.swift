@@ -10,4 +10,13 @@ final class MerchantCategorizerTests: XCTestCase {
 
         XCTAssertEqual(category, "Groceries")
     }
+
+    func testDoesNotCategorizeMerchantsWithOnlyAGenericSharedPrefix() {
+        let category = MerchantCategorizer().category(
+            for: "WARUNG MAKAN PAGI",
+            rules: [MerchantRule(merchantContains: "WARUNG TEGAL", category: "Groceries")]
+        )
+
+        XCTAssertNil(category)
+    }
 }

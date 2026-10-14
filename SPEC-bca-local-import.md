@@ -1,17 +1,19 @@
-# Spec: BCA Local Import to Review
+# Spec: BCA Local Import and Review
 
 Module id: `bca-local-import`
 
 ## Objective
 
-Turn in-memory Gmail candidates into local Review items on the iPhone. The
+Turn in-memory Gmail candidates into local transactions on the iPhone. The
 first release recognises only successful BCA QRIS payment emails. It stores
 the normalized transaction fields needed by the ledger, not the raw email
 body, headers, PAN, terminal ID, RRN, or reference number.
 
-Every recognized BCA transaction starts in Review, even when all fields parse
-cleanly. This keeps the first real import reversible and lets the owner check
-merchant names and categories before treating anything as final ledger data.
+Every recognized BCA payment starts in Review. A local merchant rule can
+suggest a category, but the owner still taps Accept before it reaches the
+ledger. When the owner personally chooses or creates a category, that choice
+is itself the acceptance: the payment moves to the ledger and the app saves or
+updates its local merchant rule.
 
 Jago, Livin' by Mandiri, OCTO CIMB, and any unknown candidate remain
 unsupported in this initial module. They do not create records. Flip remains
@@ -23,14 +25,14 @@ excluded upstream by `gmail-mailbox-sync` and must never arrive here.
 2. `gmail-mailbox-sync` reads the owner-maintained `Transaction` label for
    the last 90 days and returns candidates in memory.
 3. `bca-local-import` examines each candidate with the BCA parser only.
-4. A valid successful BCA QRIS payment becomes one local transaction with
-   status `needsReview`.
+4. A valid successful BCA QRIS payment becomes a local transaction with status
+   `needsReview`. A matching local merchant rule may supply its suggested
+   category.
 5. Existing Gmail message IDs and transaction fingerprints are ignored so a
    repeat scan cannot add a duplicate.
-6. The Review screen lets the owner correct the merchant or category, then
-   moves that transaction out of Review. The chosen category becomes a local
-   merchant rule; it can fill the category of matching Review items without
-   approving them.
+6. A system-suggested category stays in Review until the owner taps Accept.
+   When the owner chooses or creates a category themselves, the transaction
+   moves to `ready` immediately and that choice becomes a local merchant rule.
 
 The Sync action does not create records until this module is implemented and
 the owner explicitly confirms the local Review import after a real
@@ -53,7 +55,8 @@ The local transaction stores:
 - Parsed transaction time, merchant, amount, transaction kind, and parser
   confidence.
 - Category produced by an existing local merchant rule, if one matches.
-- Review status `needsReview` for every imported BCA transaction.
+- Review status `needsReview` for every new BCA import, including imports with
+  a suggested category.
 
 ## Duplicate Rules
 
@@ -79,7 +82,7 @@ The local transaction stores:
 ### Ask First
 
 - Importing Jago, Livin', OCTO CIMB, or another bank format.
-- Adding a direct-to-ledger path for high-confidence imports.
+- Adding a direct-to-ledger path that bypasses the owner's explicit action.
 - Storing any raw email content, Gmail header, account fragment, or reference
   number.
 - Changing the 90-day scan window, Gmail label, account count, or OAuth scope.
@@ -102,8 +105,10 @@ The local transaction stores:
 - A BCA email missing a required field is unsupported and creates no record.
 - A repeated Gmail message ID or matching fingerprint creates no second
   record.
-- An existing merchant rule can fill a category, but the record still starts
-  in Review.
+- An existing merchant rule fills the suggested category but keeps the BCA
+  QRIS record in Review until the owner accepts it.
+- Choosing or creating a category in Review moves that transaction to `ready`
+  without a second acceptance step and updates the merchant rule.
 - Applying saved merchant rules fills only matching Review categories; it
   never changes a transaction's Review status.
 - Unsupported candidates produce no local record and do not block recognized

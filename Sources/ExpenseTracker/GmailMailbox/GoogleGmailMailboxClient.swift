@@ -72,7 +72,11 @@ final class GoogleGmailMailboxClient: GmailMailboxClient, @unchecked Sendable {
         do {
             accessToken = try await user.refreshTokensIfNeeded().accessToken.tokenString
         } catch {
-            throw .authorizationExpired
+            let nsError = error as NSError
+            throw GmailTokenRefreshFailureClassifier.mailboxFailure(
+                errorDomain: nsError.domain,
+                errorCode: nsError.code
+            )
         }
 
         guard var components = URLComponents(string: "https://gmail.googleapis.com\(path)") else {

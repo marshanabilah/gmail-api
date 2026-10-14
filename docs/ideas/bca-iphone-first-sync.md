@@ -6,7 +6,10 @@ How might we import routine BCA transaction emails into a private iPhone ledger 
 
 ## Recommended Direction
 
-The iPhone connects to Gmail through read-only OAuth. When the user opens the app or taps Sync, it reads the user's existing `Transaction` label, identifies eligible bank transaction alerts, parses them locally, removes duplicates, applies local merchant rules, and sends uncertain items to Review.
+The iPhone connects to Gmail through read-only OAuth. When the user taps Sync,
+it reads the user's existing `Transaction` label, identifies eligible bank
+transaction alerts, parses them locally, removes duplicates, applies local
+merchant rules as category suggestions, and sends BCA payments to Review.
 
 The `Transaction` label currently includes BCA, Jago, and Livin' by Mandiri emails. Flip messages are explicitly excluded. The app does not create Gmail labels or modify the inbox.
 
@@ -21,7 +24,7 @@ The `Transaction` label currently includes BCA, Jago, and Livin' by Mandiri emai
 
 - Connect and disconnect Gmail.
 - Store read-only OAuth credentials securely on-device.
-- Sync when the user opens the app or taps Sync.
+- Sync only when the user taps Sync.
 - Discover messages only from the existing `Transaction` label.
 - Treat BCA, Jago, and Livin' by Mandiri as eligible bank-message candidates, while excluding Flip.
 - Parse, deduplicate, and locally categorize BCA transaction emails first.
@@ -31,7 +34,8 @@ The `Transaction` label currently includes BCA, Jago, and Livin' by Mandiri emai
 ## Not Doing
 
 - Background server polling. It adds cost and operational work before the core import path is proven.
-- Apps Script automation. Reconsider it only if on-open sync is not enough.
+- Apps Script automation. Reconsider it only if manual on-demand sync is not
+  enough.
 - Live imports for OCTO CIMB. BCA reliability comes first; Jago and Livin' policy will be specified before their messages are imported.
 - Gmail labels or other inbox changes. The app remains strictly read-only.
 - Cloud categorization. Local merchant rules are sufficient for this milestone.

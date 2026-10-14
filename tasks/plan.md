@@ -1,5 +1,8 @@
 # Implementation Plan: Gmail Authentication
 
+> Historical planning record. The current implemented behavior and acceptance
+> policy are maintained in the module specifications and `tasks/todo.md`.
+
 ## Goal
 
 Let the iPhone app connect one personal Google account with the smallest

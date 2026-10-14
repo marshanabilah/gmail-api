@@ -11,8 +11,8 @@ calendar days.
 
 The result is a deterministic, in-memory collection of non-Flip transaction
 email candidates for `bca-local-import`. That later module is responsible for
-bank parsing, duplicate checks, categorisation, and saving every initial
-candidate to Review. This module does not write to SwiftData or automatically
+bank parsing, duplicate checks, categorisation, and Review creation for
+recognized BCA payments. This module does not write to SwiftData or
 add anything to the ledger.
 
 The label currently contains transaction notifications from BCA, Jago, and
@@ -150,8 +150,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   the local importer.
 - Exclude a confirmed Flip receipt before parser selection.
 - Preserve Gmail message IDs for the downstream local duplicate check.
-- Leave every initial imported candidate for Review through the downstream
-  importer, even when a parser has high confidence.
+- Leave every recognized BCA payment for Review through the downstream
+  importer, even when a local merchant rule suggests its category.
 - Return an understandable, retryable state when Gmail is unavailable.
 
 ### Ask First
@@ -162,8 +162,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
 - Persisting raw message content, headers, or new Gmail metadata in SwiftData.
 - Adding a Gmail SDK, server, cloud store, analytics service, or third-party
   email-processing service.
-- Changing the initial Review-only policy or allowing high-confidence imports
-  directly into the ledger.
+- Changing the initial Review-first policy or allowing imports to bypass the
+  owner's explicit acceptance.
 
 ### Never
 

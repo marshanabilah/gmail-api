@@ -10,15 +10,15 @@ The project contains a native SwiftUI foundation and a local import core.
 
 - Local SwiftData models for transactions and learned merchant categories
 - Dashboard, transaction history, and review screens
-- Google Sign-In foundation for one Gmail account, with Gmail read-only access only
+- Google Sign-In for one Gmail account, with Gmail read-only access only
+- Manual 90-day scans of the owner-maintained `Transaction` Gmail label
 - Duplicate protection using Gmail message IDs and transaction fingerprints
-- BCA QRIS email parsing for successful transactions
-- Jago debit-card email parsing, sent to review because the alert does not include a merchant or transaction timestamp
-- Merchant corrections that create a local matching rule for future imports
+- BCA QRIS email parsing for successful payments, with a deliberate Review flow
+- Local merchant rules that suggest categories without auto-approving payments
+- Manual cash and e-wallet entries, custom categories, and light/dark appearance
 
-The app can start Google authorization after you add your own iOS OAuth client
-configuration. It does not download Gmail messages yet. The next capability is
-reading the user-maintained `Ledger/BCA` label for an initial 90-day scan.
+The app reads only the owner-maintained `Transaction` label when they tap
+Sync Gmail. It does not modify Gmail and does not run in the background.
 
 ## Privacy model
 
@@ -39,20 +39,20 @@ Gmail, read-only
   → identify bank transaction alerts
   → parse bank-specific fields on device
   → reject duplicates
-  → apply local merchant rules
-  → save to the local ledger
-  → send uncertain imports to Review
-  → save approved category as a local merchant rule
+  → suggest a category from local merchant rules when available
+  → send every new BCA payment to Review
+  → owner accepts a suggestion, or chooses a category directly
+  → save the accepted transaction and update the local merchant rule
 ```
 
 ## Supported message formats
 
 | Bank | Transaction | Result |
 | --- | --- | --- |
-| BCA | Successful QRIS payment email with transaction date, merchant, and total payment | High-confidence transaction |
-| Jago | Debit-card alert containing only an amount | Low-confidence transaction in Review |
-| OCTO CIMB | Successful transfer between own CIMB Niaga accounts | High-confidence transfer, excluded from spending |
-| Mandiri | Successful Livin' transfer with recipient, date, time, and amount | Low-confidence transfer in Review |
+| BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
+| Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
+| OCTO CIMB | Successful transfer between own CIMB Niaga accounts | Parsed only; not imported in the current Gmail flow |
+| Mandiri | Successful Livin' transfer with recipient, date, time, and amount | Parsed only; not imported in the current Gmail flow |
 
 ## Development
 
@@ -78,7 +78,8 @@ This checks the import policy, duplicate handling, merchant categorization, BCA 
 swift test
 ```
 
-This includes category tests for custom names, duplicate prevention, and the built-in category list.
+This includes category, Gmail sync, BCA import, duplicate-prevention, and
+merchant-rule tests using synthetic, redacted fixtures.
 
 ### Gmail configuration
 
