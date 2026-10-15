@@ -30,6 +30,9 @@ it neither creates nor maintains the label, and it does not alter messages.
 - A confirmed Flip receipt is excluded and cannot create a Review item.
 - The resulting candidates retain Gmail message IDs so the importer can
   deduplicate them locally.
+- If Gmail returns HTTP 403 for one listed message after the label and message
+  list were read successfully, skip that message, keep the other candidates,
+  and report the skipped count to the owner.
 - Missing label, expired connection, malformed response, and network failure
   show an actionable error without changing local transaction data.
 
@@ -134,6 +137,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   excluded.
 - Test expired authorisation, HTTP failure, malformed MIME, and rate-limit
   responses as non-destructive errors with no partial local writes.
+- Test that one message-level 403 does not discard other readable candidates
+  and that the completed scan reports the skipped count.
 - After core tests and the simulator build pass, perform one opt-in scan of
   the real `Transaction` label. Verify recognized BCA and Mandiri candidates
   through the Review screen. Do not use routine UI testing for parser or
@@ -155,6 +160,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   the downstream importer, even when a local merchant rule suggests its
   category.
 - Return an understandable, retryable state when Gmail is unavailable.
+- Continue past an individual message that Gmail refuses with HTTP 403, and
+  show how many labeled messages were skipped after the scan.
 
 ### Ask First
 
@@ -190,6 +197,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   it; the control fixture is not falsely excluded.
 - [ ] Gmail remains unchanged after success, cancellation, or failure.
 - [ ] No raw email content or credentials are persisted or logged.
+- [ ] One message-level 403 skips only that message; other candidates remain
+  available and the UI reports the skipped count.
 - [ ] Core unit tests cover successful pagination, label errors, auth/network
   errors, cutoff handling, MIME decoding, duplicate IDs, and Flip exclusion.
 - [ ] The app and core tests build cleanly before one user-authorised real

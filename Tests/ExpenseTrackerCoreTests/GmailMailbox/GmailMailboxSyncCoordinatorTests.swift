@@ -11,7 +11,8 @@ final class GmailMailboxSyncCoordinatorTests: XCTestCase {
                         makeEmail(id: "bca-1"),
                         makeEmail(id: "jago-1")
                     ],
-                    excludedFlipMessageCount: 1
+                    excludedFlipMessageCount: 1,
+                    skippedMessageCount: 0
                 )
             )
         )
@@ -21,6 +22,25 @@ final class GmailMailboxSyncCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(coordinator.state, .completed(candidateCount: 2))
         XCTAssertEqual(coordinator.latestCandidates.map(\.messageID), ["bca-1", "jago-1"])
+        XCTAssertEqual(coordinator.latestSkippedMessageCount, 0)
+    }
+
+    func testSyncReportsTheNumberOfMessagesGmailWouldNotReturn() async {
+        let service = FakeMailboxSyncService(
+            result: .success(
+                GmailMailboxScanResult(
+                    candidates: [makeEmail(id: "bca-1")],
+                    excludedFlipMessageCount: 0,
+                    skippedMessageCount: 1
+                )
+            )
+        )
+        let coordinator = GmailMailboxSyncCoordinator(service: service)
+
+        await coordinator.sync(now: .now)
+
+        XCTAssertEqual(coordinator.state, .completed(candidateCount: 1))
+        XCTAssertEqual(coordinator.latestSkippedMessageCount, 1)
     }
 
     func testSyncReportsFailureAndAllowsAnotherAttempt() async {

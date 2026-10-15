@@ -87,6 +87,29 @@ final class GmailMailboxScannerTests: XCTestCase {
         XCTAssertTrue(result.candidates.isEmpty)
     }
 
+    func testScanSkipsAnInaccessibleMessageWithoutDiscardingOtherCandidates() async throws {
+        let now = Date(timeIntervalSince1970: 1_791_763_200)
+        let client = FakeGmailMailboxClient(
+            labels: [GmailLabel(id: "transaction-label", name: "Transaction")],
+            pages: [
+                "initial": GmailMessagePage(
+                    messageIDs: ["bca-1", "inaccessible-1", "mandiri-1"],
+                    nextPageToken: nil
+                )
+            ],
+            messages: [
+                "bca-1": email(id: "bca-1", body: "QRIS Payment", receivedAt: now),
+                "mandiri-1": email(id: "mandiri-1", body: "Transfer Successful", receivedAt: now)
+            ],
+            messageFailures: ["inaccessible-1": .messageUnavailable]
+        )
+
+        let result = try await GmailMailboxScanner(client: client).scan(now: now)
+
+        XCTAssertEqual(result.candidates.map(\.messageID), ["bca-1", "mandiri-1"])
+        XCTAssertEqual(result.skippedMessageCount, 1)
+    }
+
     func testScanRejectsAFetchedMessageWhoseIDDoesNotMatchTheListedID() async {
         let now = Date(timeIntervalSince1970: 1_791_763_200)
         let client = FakeGmailMailboxClient(
@@ -172,18 +195,21 @@ private final class FakeGmailMailboxClient: GmailMailboxClient, @unchecked Senda
     let pages: [String: GmailMessagePage]
     let messages: [String: BankEmail]
     let pageFailure: GmailMailboxFailure?
+    let messageFailures: [String: GmailMailboxFailure]
     private(set) var requestedMessageIDs = [String]()
 
     init(
         labels: [GmailLabel],
         pages: [String: GmailMessagePage],
         messages: [String: BankEmail],
-        pageFailure: GmailMailboxFailure? = nil
+        pageFailure: GmailMailboxFailure? = nil,
+        messageFailures: [String: GmailMailboxFailure] = [:]
     ) {
         self.labels = labels
         self.pages = pages
         self.messages = messages
         self.pageFailure = pageFailure
+        self.messageFailures = messageFailures
     }
 
     func listLabels() async throws(GmailMailboxFailure) -> [GmailLabel] {
@@ -206,6 +232,9 @@ private final class FakeGmailMailboxClient: GmailMailboxClient, @unchecked Senda
 
     func message(id: String) async throws(GmailMailboxFailure) -> BankEmail {
         requestedMessageIDs.append(id)
+        if let failure = messageFailures[id] {
+            throw failure
+        }
         guard let message = messages[id] else {
             throw .malformedResponse
         }

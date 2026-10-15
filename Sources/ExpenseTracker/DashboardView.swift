@@ -103,6 +103,11 @@ struct DashboardView: View {
                             Section("Gmail") {
                                 Text(candidateCountDescription(candidateCount))
                                     .foregroundStyle(.secondary)
+                                if sync.lastSyncSkippedMessageCount > 0 {
+                                    Text(skippedMessageDescription(sync.lastSyncSkippedMessageCount))
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
                                 Button("Import transactions", systemImage: "tray.and.arrow.down") {
                                     prepareBankImport()
                                 }
@@ -197,6 +202,13 @@ struct DashboardView: View {
         case .idle, .connecting:
             "No imports yet"
         }
+    }
+
+    private func skippedMessageDescription(_ count: Int) -> String {
+        if count == 1 {
+            return "Gmail did not return 1 labeled message, so the app skipped it."
+        }
+        return "Gmail did not return \(count) labeled messages, so the app skipped them."
     }
 
     private var emptyStateSymbol: String {

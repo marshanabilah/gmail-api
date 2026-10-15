@@ -40,7 +40,8 @@ final class GoogleGmailMailboxClient: GmailMailboxClient, @unchecked Sendable {
     func message(id: String) async throws(GmailMailboxFailure) -> BankEmail {
         let response: MessageResponse = try await request(
             path: "/gmail/v1/users/me/messages/\(id)",
-            queryItems: []
+            queryItems: [],
+            forbiddenFailure: .messageUnavailable
         )
         guard
             let timestampMilliseconds = Double(response.internalDate),
@@ -62,7 +63,8 @@ final class GoogleGmailMailboxClient: GmailMailboxClient, @unchecked Sendable {
 
     private func request<Response: Decodable>(
         path: String,
-        queryItems: [URLQueryItem]
+        queryItems: [URLQueryItem],
+        forbiddenFailure: GmailMailboxFailure = .authorizationExpired
     ) async throws(GmailMailboxFailure) -> Response {
         guard let user = GIDSignIn.sharedInstance.currentUser else {
             throw .authorizationExpired
@@ -98,8 +100,10 @@ final class GoogleGmailMailboxClient: GmailMailboxClient, @unchecked Sendable {
             switch httpResponse.statusCode {
             case 200 ... 299:
                 break
-            case 401, 403:
+            case 401:
                 throw GmailMailboxFailure.authorizationExpired
+            case 403:
+                throw forbiddenFailure
             case 429, 500 ... 599:
                 throw GmailMailboxFailure.unavailable
             default:

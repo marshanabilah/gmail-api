@@ -16,6 +16,8 @@ The project contains a native SwiftUI foundation and a local import core.
   Review items are shown separately rather than counted as spending
 - Google Sign-In for one Gmail account, with Gmail read-only access only
 - Manual 90-day scans of the owner-maintained `Transaction` Gmail label
+- A labeled message that Gmail refuses to return is skipped without discarding
+  the rest of the scan; the app reports how many messages it skipped
 - Duplicate protection using Gmail message IDs and transaction fingerprints
 - BCA QRIS payments and Livin' by Mandiri transfers imported through a
   deliberate Review flow

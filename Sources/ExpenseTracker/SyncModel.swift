@@ -16,6 +16,7 @@ final class SyncModel {
     var state: SyncState = .idle
     var showsConnectionSheet = false
     var lastSyncCandidateCount: Int?
+    var lastSyncSkippedMessageCount = 0
     var canRetryMailboxSync = false
     private var hasRestoredConnection = false
     private let auth: GmailAuthCoordinator
@@ -53,6 +54,7 @@ final class SyncModel {
 
     func disconnect() {
         lastSyncCandidateCount = nil
+        lastSyncSkippedMessageCount = 0
         canRetryMailboxSync = false
         Task {
             await auth.disconnect()
@@ -128,6 +130,8 @@ final class SyncModel {
 
     private func beginMailboxSync() {
         guard case .connected = auth.state else { return }
+        lastSyncCandidateCount = nil
+        lastSyncSkippedMessageCount = 0
         canRetryMailboxSync = false
         state = .syncing
         Task {
@@ -144,6 +148,7 @@ final class SyncModel {
             state = .syncing
         case .completed(let candidateCount):
             lastSyncCandidateCount = candidateCount
+            lastSyncSkippedMessageCount = mailbox.latestSkippedMessageCount
             applyAuthenticationState()
         case .failed(let failure):
             canRetryMailboxSync = true
@@ -191,6 +196,8 @@ final class SyncModel {
             "Gmail has more than one Transaction label. Rename one, then try again."
         case .authorizationExpired:
             "Your Gmail connection needs to be renewed. Connect Gmail again to continue."
+        case .messageUnavailable:
+            "Gmail could not read one labeled message. Try syncing again."
         case .unavailable:
             "Gmail could not sync right now. Check your connection and try again."
         case .malformedResponse:

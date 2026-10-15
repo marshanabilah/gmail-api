@@ -24,6 +24,7 @@ public enum GmailMailboxFailure: Error, Equatable, Sendable {
     case transactionLabelNotFound
     case duplicateTransactionLabels
     case authorizationExpired
+    case messageUnavailable
     case unavailable
     case malformedResponse
 }
@@ -49,10 +50,16 @@ public protocol GmailMailboxClient: Sendable {
 public struct GmailMailboxScanResult: Sendable {
     public let candidates: [BankEmail]
     public let excludedFlipMessageCount: Int
+    public let skippedMessageCount: Int
 
-    public init(candidates: [BankEmail], excludedFlipMessageCount: Int) {
+    public init(
+        candidates: [BankEmail],
+        excludedFlipMessageCount: Int,
+        skippedMessageCount: Int = 0
+    ) {
         self.candidates = candidates
         self.excludedFlipMessageCount = excludedFlipMessageCount
+        self.skippedMessageCount = skippedMessageCount
     }
 }
 
@@ -81,6 +88,7 @@ public struct GmailMailboxScanner: Sendable {
         var seenMessageIDs = Set<String>()
         var candidates = [BankEmail]()
         var excludedFlipMessageCount = 0
+        var skippedMessageCount = 0
 
         while true {
             let page = try await client.messagePage(
@@ -90,7 +98,13 @@ public struct GmailMailboxScanner: Sendable {
             )
 
             for messageID in page.messageIDs where seenMessageIDs.insert(messageID).inserted {
-                let email = try await client.message(id: messageID)
+                let email: BankEmail
+                do {
+                    email = try await client.message(id: messageID)
+                } catch .messageUnavailable {
+                    skippedMessageCount += 1
+                    continue
+                }
                 guard email.messageID == messageID else {
                     throw .malformedResponse
                 }
@@ -112,7 +126,8 @@ public struct GmailMailboxScanner: Sendable {
 
         return GmailMailboxScanResult(
             candidates: candidates,
-            excludedFlipMessageCount: excludedFlipMessageCount
+            excludedFlipMessageCount: excludedFlipMessageCount,
+            skippedMessageCount: skippedMessageCount
         )
     }
 }
