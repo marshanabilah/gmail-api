@@ -460,6 +460,7 @@ struct TransactionCategoryEditor: View {
     @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
     @Query private var merchantRules: [MerchantRuleRecord]
     let transaction: TransactionRecord
+    let preservesReviewStatus: Bool
 
     @State private var description: String
     @State private var category: String
@@ -468,8 +469,9 @@ struct TransactionCategoryEditor: View {
     @State private var showsDeleteConfirmation = false
     @State private var validationMessage: String?
 
-    init(transaction: TransactionRecord) {
+    init(transaction: TransactionRecord, preservesReviewStatus: Bool = false) {
         self.transaction = transaction
+        self.preservesReviewStatus = preservesReviewStatus
         _description = State(initialValue: transaction.merchant)
         _category = State(initialValue: transaction.category ?? "Food & drink")
     }
@@ -555,7 +557,7 @@ struct TransactionCategoryEditor: View {
         }
         transaction.merchant = normalizedDescription
         transaction.category = category
-        if transaction.status == ImportStatus.needsReview.rawValue {
+        if transaction.status == ImportStatus.needsReview.rawValue, !preservesReviewStatus {
             transaction.status = ImportStatus.ready.rawValue
         }
         if remembersMerchant {

@@ -4,11 +4,9 @@ import SwiftUI
 struct ReviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<TransactionRecord> { $0.status == "needsReview" }, sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
-    @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
     @Query private var merchantRules: [MerchantRuleRecord]
-    @State private var transactionAwaitingCategory: TransactionRecord?
+    @State private var transactionBeingEdited: TransactionRecord?
     @State private var transactionAwaitingDiscard: TransactionRecord?
-    @State private var transactionEditingDescription: TransactionRecord?
     @State private var categoryUpdateSummary: String?
     let month: Date?
     let selectMonth: (Date?) -> Void
@@ -19,10 +17,6 @@ struct ReviewView: View {
 
     private var availableMonths: [Date] {
         Array(Set(transactions.map { SpendingAnalytics.monthStart(for: $0.occurredAt) })).sorted(by: >)
-    }
-
-    private var categories: [String] {
-        ExpenseCategory.availableNames(savedNames: savedCategories.map(\.name))
     }
 
     var body: some View {
@@ -42,12 +36,12 @@ struct ReviewView: View {
                 } else {
                     ForEach(displayedTransactions) { transaction in
                         Section {
-                            TransactionRow(transaction: transaction)
                             Button {
-                                transactionEditingDescription = transaction
+                                transactionBeingEdited = transaction
                             } label: {
-                                Label("Edit description", systemImage: "pencil")
+                                TransactionRow(transaction: transaction)
                             }
+                            .buttonStyle(.plain)
                             if transaction.category != nil {
                                 Button {
                                     accept(transaction)
@@ -55,24 +49,6 @@ struct ReviewView: View {
                                     Label("Accept", systemImage: "checkmark.circle.fill")
                                 }
                                 .tint(.green)
-                            }
-                            Menu {
-                                ForEach(categories, id: \.self) { category in
-                                    Button {
-                                        chooseCategory(transaction, as: category)
-                                    } label: {
-                                        Label(
-                                            category,
-                                            systemImage: transaction.category == category ? "checkmark" : "circle"
-                                        )
-                                    }
-                                }
-                                Divider()
-                                Button("Add category", systemImage: "plus") {
-                                    transactionAwaitingCategory = transaction
-                                }
-                            } label: {
-                                Label(transaction.category ?? "Choose category", systemImage: "tag")
                             }
                             Button(role: .destructive) {
                                 transactionAwaitingDiscard = transaction
@@ -106,13 +82,8 @@ struct ReviewView: View {
                 }
             }
         }
-        .sheet(item: $transactionAwaitingCategory) { transaction in
-            NewCategoryView(existingNames: categories) { newCategory in
-                chooseCategory(transaction, as: newCategory)
-            }
-        }
-        .sheet(item: $transactionEditingDescription) { transaction in
-            ReviewDescriptionEditor(transaction: transaction)
+        .sheet(item: $transactionBeingEdited) { transaction in
+            TransactionCategoryEditor(transaction: transaction, preservesReviewStatus: true)
         }
         .confirmationDialog(
             "Discard this transaction?",
@@ -131,12 +102,6 @@ struct ReviewView: View {
         } message: {
             Text("This removes the transaction from this iPhone and keeps the same Gmail email from returning after a later sync.")
         }
-    }
-
-    private func chooseCategory(_ transaction: TransactionRecord, as category: String) {
-        transaction.category = category
-        categoryUpdateSummary = nil
-        accept(transaction)
     }
 
     private func discard(_ transaction: TransactionRecord) {
@@ -196,51 +161,3 @@ struct ReviewView: View {
     }
 }
 
-private struct ReviewDescriptionEditor: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    let transaction: TransactionRecord
-    @State private var description: String
-    @State private var validationMessage: String?
-
-    init(transaction: TransactionRecord) {
-        self.transaction = transaction
-        _description = State(initialValue: transaction.merchant)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                TextField("Description", text: $description)
-                    .textContentType(.none)
-                if let validationMessage {
-                    Text(validationMessage)
-                        .foregroundStyle(.red)
-                }
-            }
-            .navigationTitle("Edit description")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                }
-            }
-        }
-    }
-
-    private func save() {
-        guard let normalized = TransactionDescription.normalized(description) else {
-            validationMessage = "Add a description so you can recognize this transaction later."
-            return
-        }
-        transaction.merchant = normalized
-        do {
-            try modelContext.save()
-            dismiss()
-        } catch {
-            validationMessage = "Could not save the description. Try again."
-        }
-    }
-}
