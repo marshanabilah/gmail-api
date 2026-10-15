@@ -66,7 +66,8 @@ accepted with a category, they count toward confirmed spending totals.
 | Bank | Transaction | Result |
 | --- | --- | --- |
 | BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
-| Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
+| Jago | Structured payment, transfer, or e-wallet top-up receipt with destination, time, and amount | Imported to Review; accepted items count as spending |
+| Jago | Debit-card alert containing only an amount | Imported to Review as `Jago debit card spending`, using Gmail receipt time provisionally; edit the local description before or after categorizing if helpful |
 | OCTO CIMB | OCTO App Purchase with QR receipt with transaction time, merchant, and total payment | Imported to Review; accepted purchases count as spending |
 | OCTO CIMB | Own-account transfer receipt | Parsed only; not imported in the current Gmail flow |
 | Mandiri | Successful Livin' transfer, payment, or e-money top-up with its required receipt fields | Imported to Review; accepted transfers and e-money top-ups count as spending |

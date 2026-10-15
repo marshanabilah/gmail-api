@@ -694,3 +694,83 @@ The dedicated QR-purchase parser is registered for Review, own-account
 transfers remain parse-only, and `octoCimb` maps to `OCTO CIMB` in analytics.
 Core tests, CoreVerification, and the unsigned simulator build pass. A live
 labeled-email import remains optional.
+
+---
+
+# Implementation Plan: Jago Local Import and Description Editing
+
+Module id: `jago-local-import`
+
+## Overview
+
+Add the supplied Jago payment, transfer, e-wallet top-up, and debit-card email
+formats to the local Gmail Review flow. Structured receipts use their bank
+fields; the debit-card alert gets an explicit provisional label and Gmail
+receipt time because its email omits both merchant and bank transaction time.
+Extend the existing transaction editor so the owner can revise any local
+transaction description, including that provisional label.
+
+## Architecture Decisions
+
+- Implement four narrow pure parsers in `BankEmailParser.swift` and register
+  all four after the currently supported BCA, Mandiri, and OCTO parsers.
+- Preserve the provided first `To` value only for structured Jago payments,
+  transfers, and top-ups. Never persist account/PAN values below it or any
+  other sensitive receipt metadata.
+- Use `cardPurchase` for structured payments and debit-card alerts;
+  use `transferOut` for transfers and top-ups, consistent with existing
+  Mandiri semantics.
+- The debit-card alert always creates a medium-confidence Review item named
+  `Jago debit card spending`, timestamped with `BankEmail.receivedAt`. It
+  does not create or match a merchant rule automatically.
+- Add a local editable description to the existing category editor by editing
+  `TransactionRecord.merchant`; this avoids a data-model migration and keeps
+  the current visible transaction label as the owner-facing description.
+- Description changes never mutate Gmail, source IDs, amount, kind, timestamp,
+  fingerprint, or prior transactions. Creating a category rule stays opt-in.
+
+## Dependency Graph
+
+```text
+Red parser tests + edit-behavior tests
+        |
+        +--> Pure Jago parsers
+        |          |
+        |          v
+        |   Importer registration + analytics coverage
+        |
+        +--> Transaction description editor
+                    |
+                    v
+           Documentation and full verification
+```
+
+## Proposed Work
+
+1. Add failing anonymized tests for the four Jago formats, then implement
+   strict local parsers. Validate success status for structured payments, use
+   only permitted fields, and prove the debit alert uses its fixed fallback.
+2. Register the parsers in the deterministic Review importer; add mixed-import,
+   duplicate, analytics, and category-rule coverage so every valid Jago item
+   reaches Review exactly once and accepted spending appears under Jago.
+3. Extend the transaction editor with an editable description field, nonblank
+   validation, and an opt-in merchant-rule toggle that uses the final edited
+   description.
+4. Align README and import specs, then run focused tests, the full suite,
+   CoreVerification, an unsigned simulator build, and an optional live Gmail
+   scan after the automated checks pass.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Account or PAN becomes a visible description | High | Tests assert the first `To` value only; debit alerts use a constant label. |
+| Debit-card timing is presented as bank-confirmed | Medium | Use medium confidence and describe receipt time as provisional in Review. |
+| An edited description silently changes future categorization | High | Leave “use for future transactions” off by default and test that only an explicit toggle writes a rule. |
+| Jago top-ups or transfers are omitted from spending | High | Reuse `transferOut`, the existing confirmed-expense behavior, and source analytics tests. |
+| Existing category editing regresses | Medium | Preserve category, delete, and duplicate-suppression behavior in unit and build verification. |
+
+## Open Questions
+
+- None. The owner approved importing debit-card alerts with a provisional
+  description and adding local description editing.

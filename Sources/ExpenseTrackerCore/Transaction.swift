@@ -58,6 +58,13 @@ public enum ExpenseCategory {
     }
 }
 
+public enum TransactionDescription {
+    public static func normalized(_ candidate: String) -> String? {
+        let normalized = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized.isEmpty ? nil : normalized
+    }
+}
+
 public struct ManualTransactionInput: Sendable {
     public let merchant: String
     public let amount: Decimal

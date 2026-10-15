@@ -889,7 +889,7 @@ module without requiring a real Gmail scan.
 
 - [x] Full suite and `CoreVerification` pass.
 - [x] Unsigned simulator build and `git diff --check` pass.
-- [ ] Optional manual check: one labeled OCTO CIMB QR receipt reaches Review
+- [x] Optional manual check: one labeled OCTO CIMB QR receipt reaches Review
   without reconnecting or reinstalling.
 
 **Dependencies:** Task 27.
@@ -908,3 +908,146 @@ module without requiring a real Gmail scan.
 - [x] QR purchases reach Review; own transfers do not.
 - [x] Accepted OCTO CIMB payments appear under the OCTO CIMB analytics source.
 - [x] Full automated verification passes.
+
+---
+
+# Jago Local Import and Description Editing Task List
+
+Module id: `jago-local-import`.
+
+## 29. Parse the four approved Jago email formats
+
+**Description:** Add failing synthetic tests, then implement strict parsers for
+Jago structured payment, transfer, e-wallet top-up, and debit-card-alert
+emails.
+
+**Acceptance criteria:**
+
+- [x] Structured payment creates a high-confidence `jago` `cardPurchase`
+  using the first `To` value, confirmed status, Jakarta time, and amount.
+- [x] Transfer creates a high-confidence `jago` `transferOut` using its first
+  `To` value, Jakarta time, and amount.
+- [x] E-wallet top-up creates a high-confidence `jago` `transferOut` using
+  its first `To` value, Jakarta time, and amount.
+- [x] Debit-card alert creates a medium-confidence `jago` `cardPurchase`
+  labelled `Jago debit card spending`, with Gmail receipt time and amount.
+- [x] Missing required structured fields, a failed payment, zero amount, and
+  lookalike messages produce no draft.
+- [x] No draft exposes source accounts, destination accounts, PANs, acquirer,
+  terminal, location, tip, or raw email content.
+
+**Verification:**
+
+- [x] Focused tests fail before implementation, then pass:
+  `swift test -j 1 --filter JagoEmailParserTests`
+
+**Dependencies:** Approved `SPEC-jago-local-import.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BankEmailParser.swift`
+- `Tests/ExpenseTrackerCoreTests/JagoEmailParserTests.swift`
+- `Sources/CoreVerification/main.swift`
+
+**Estimated scope:** Medium: 3 files.
+
+## 30. Route Jago imports through Review and analytics
+
+**Description:** Register the four Jago parsers in the deterministic importer
+and prove they preserve Review, duplicate, merchant-rule, and source-analytics
+behavior.
+
+**Acceptance criteria:**
+
+- [x] Each valid Jago email reaches Review exactly once in a mixed scan.
+- [ ] Duplicate Gmail IDs and fingerprints remain suppressed.
+- [x] The debit-card fallback label cannot receive an automatic category from
+  a merchant rule.
+- [ ] Accepted Jago payment, transfer, top-up, and debit-card spending appear
+  under `Jago` in the source total; Review items remain excluded.
+
+**Verification:**
+
+- [ ] Focused importer and analytics tests pass:
+  `swift test -j 1 --filter BCAReviewImportTests`
+  and `swift test -j 1 --filter SpendingAnalyticsTests`
+
+**Dependencies:** Task 29.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+- `Tests/ExpenseTrackerCoreTests/SpendingAnalyticsTests.swift`
+
+**Estimated scope:** Medium: 3 files.
+
+## 31. Edit local transaction descriptions safely
+
+**Description:** Extend the existing category editor so the owner can change a
+saved transaction's visible description, including a provisional Jago debit
+label, without changing Gmail or silently teaching a future merchant rule.
+
+**Acceptance criteria:**
+
+- [x] The editor shows a Description field populated with the current value.
+- [x] Blank or whitespace-only descriptions cannot save.
+- [x] A valid description updates only the selected local transaction.
+- [ ] Saving a description does not change its Gmail ID, amount, kind, date,
+  or duplicate-suppression identity.
+- [ ] “Use for future transactions from this merchant” is off by default and,
+  if selected, uses the saved edited description.
+- [x] Existing category addition, category save, and deletion still work.
+
+**Verification:**
+
+- [ ] Relevant core/UI model tests pass, followed by an unsigned simulator
+  build. A simulator interaction is optional after the build passes.
+
+**Dependencies:** Task 29.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/TransactionsView.swift`
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+- `Tests/ExpenseTrackerCoreTests/`
+
+**Estimated scope:** Medium: 3 files.
+
+## 32. Align documentation and verify the module
+
+**Description:** Record the supported Jago formats and provisional debit-card
+behavior, then validate the complete module without requiring a real Gmail
+scan.
+
+**Acceptance criteria:**
+
+- [x] README and active import specs describe all four Jago formats and the
+  debit-card receipt-time fallback accurately.
+- [x] Documentation says descriptions are local edits and never modify Gmail.
+- [x] The Jago spec reflects the final implementation status.
+
+**Verification:**
+
+- [x] Full suite and `CoreVerification` pass.
+- [x] Unsigned simulator build and `git diff --check` pass.
+- [ ] Optional manual check: a labelled Jago email reaches Review; a
+  debit-card item can be renamed, categorized, accepted, or discarded.
+
+**Dependencies:** Tasks 30 and 31.
+
+**Files likely touched:**
+
+- `README.md`
+- `SPEC-bca-local-import.md`
+- `SPEC-gmail-mailbox-sync.md`
+- `SPEC-jago-local-import.md`
+
+**Estimated scope:** Medium: 4 files.
+
+## Checkpoint L: Jago import and description editing complete
+
+- [ ] All four approved Jago email formats enter Review with their approved
+  local data only.
+- [ ] Debit-card alerts remain visibly provisional and editable.
+- [ ] Full automated verification passes.

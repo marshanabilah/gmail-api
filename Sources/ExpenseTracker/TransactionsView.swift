@@ -456,6 +456,7 @@ struct TransactionCategoryEditor: View {
     @Query private var merchantRules: [MerchantRuleRecord]
     let transaction: TransactionRecord
 
+    @State private var description: String
     @State private var category: String
     @State private var remembersMerchant = false
     @State private var showsNewCategory = false
@@ -464,6 +465,7 @@ struct TransactionCategoryEditor: View {
 
     init(transaction: TransactionRecord) {
         self.transaction = transaction
+        _description = State(initialValue: transaction.merchant)
         _category = State(initialValue: transaction.category ?? "Food & drink")
     }
 
@@ -477,7 +479,8 @@ struct TransactionCategoryEditor: View {
         NavigationStack {
             Form {
                 Section("Transaction") {
-                    Text(transaction.merchant)
+                    TextField("Description", text: $description)
+                        .textContentType(.none)
                     LabeledContent("Amount", value: transaction.amount, format: .currency(code: "IDR"))
                 }
 
@@ -511,7 +514,7 @@ struct TransactionCategoryEditor: View {
                     }
                 }
             }
-            .navigationTitle("Edit category")
+            .navigationTitle("Edit transaction")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -541,6 +544,11 @@ struct TransactionCategoryEditor: View {
     }
 
     private func save() {
+        guard let normalizedDescription = TransactionDescription.normalized(description) else {
+            validationMessage = "Add a description so you can recognize this transaction later."
+            return
+        }
+        transaction.merchant = normalizedDescription
         transaction.category = category
         if transaction.status == ImportStatus.needsReview.rawValue {
             transaction.status = ImportStatus.ready.rawValue

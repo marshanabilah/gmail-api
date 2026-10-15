@@ -30,6 +30,21 @@ final class BCAReviewImportTests: XCTestCase {
         XCTAssertEqual(result.unsupportedCount, 1)
     }
 
+    func testJagoCandidatesEnterReviewAndDebitAlertDoesNotUseMerchantRules() {
+        XCTAssertNotNil(transactionDraft(from: JagoStructuredPaymentEmailParser().parse(jagoPaymentImportEmail())))
+        let result = BankReviewImporter().importCandidates(
+            [jagoPaymentImportEmail(), jagoDebitImportEmail()],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: [MerchantRule(merchantContains: "jago debit card spending", category: "Shopping")]
+        )
+
+        XCTAssertEqual(result.imports.map(\.draft.bankID), ["jago", "jago"])
+        XCTAssertEqual(result.imports.map(\.status), [.needsReview, .needsReview])
+        XCTAssertEqual(result.imports.map(\.draft.merchant), ["Example Restaurant", "Jago debit card spending"])
+        XCTAssertEqual(result.imports.map(\.category), [nil, nil])
+    }
+
     func testMandiriMessageIDAndFingerprintDuplicatesAreSkipped() throws {
         let email = mandiriImportEmail(id: "mandiri-duplicate")
         let draft = try XCTUnwrap(transactionDraft(from: MandiriTransferEmailParser().parse(email)))
@@ -374,6 +389,40 @@ private func octoOwnTransferEmail() -> BankEmail {
         Status:
         SUCCESS
         """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func jagoPaymentImportEmail() -> BankEmail {
+    BankEmail(
+        messageID: "jago-payment-import",
+        sender: "alerts@example.test",
+        subject: "Jago payment",
+        body: """
+        Thank you for trusting Jago! You have made a payment, and here are the details:
+        Transaction Summary
+        From
+        Example account
+        To
+        Example Restaurant
+        9360000000000000000
+        Amount
+        Rp 54.500
+        Transaction Date
+        10 October 2026, 07:59 WIB
+        Transaction Status
+        Successful
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func jagoDebitImportEmail() -> BankEmail {
+    BankEmail(
+        messageID: "jago-debit-import",
+        sender: "alerts@example.test",
+        subject: "Jago debit",
+        body: "You have recently made a transaction of Rp400.000 using your Jago debit card.",
         receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
     )
 }

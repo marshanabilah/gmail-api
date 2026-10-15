@@ -28,7 +28,7 @@ public struct JagoDebitCardEmailParser: BankEmailParsing {
             sourceMessageID: email.messageID,
             bankID: "jago",
             occurredAt: email.receivedAt,
-            merchant: "Jago debit card transaction",
+            merchant: "Jago debit card spending",
             amount: amount,
             kind: .cardPurchase,
             confidence: 0.55
@@ -42,7 +42,144 @@ public struct JagoDebitCardEmailParser: BankEmailParsing {
             .replacingOccurrences(of: ".", with: "")
             .replacingOccurrences(of: ",", with: ".")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX"))
+        guard let amount = Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX")), amount > 0 else {
+            return nil
+        }
+        return amount
+    }
+}
+
+public struct JagoStructuredPaymentEmailParser: BankEmailParsing {
+    public init() {}
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        let lines = JagoReceiptSupport.lines(in: email.body)
+        guard JagoReceiptSupport.contains("Thank you for trusting Jago! You have made a payment", in: lines),
+              JagoReceiptSupport.contains("Transaction Summary", in: lines) else {
+            return .unsupported
+        }
+        guard let merchant = JagoReceiptSupport.value(after: "To", in: lines),
+              let amount = JagoReceiptSupport.rupiahAmount(after: "Amount", in: lines),
+              let occurredAt = JagoReceiptSupport.date(after: "Transaction Date", in: lines, containsComma: true),
+              let status = JagoReceiptSupport.value(after: "Transaction Status", in: lines) else {
+            return .unsupported
+        }
+        guard status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "successful" else {
+            return .ignored
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "jago",
+            occurredAt: occurredAt,
+            merchant: merchant,
+            amount: amount,
+            kind: .cardPurchase,
+            confidence: 0.99
+        ))
+    }
+}
+
+public struct JagoTransferEmailParser: BankEmailParsing {
+    public init() {}
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        let lines = JagoReceiptSupport.lines(in: email.body)
+        guard JagoReceiptSupport.contains("Thank you for trusting Jago! You have transferred some money", in: lines),
+              JagoReceiptSupport.contains("Transaction Summary", in: lines),
+              let recipient = JagoReceiptSupport.value(after: "To", in: lines),
+              let amount = JagoReceiptSupport.rupiahAmount(after: "Amount", in: lines),
+              let occurredAt = JagoReceiptSupport.date(after: "Transaction Date", in: lines, containsComma: false) else {
+            return .unsupported
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "jago",
+            occurredAt: occurredAt,
+            merchant: recipient,
+            amount: amount,
+            kind: .transferOut,
+            confidence: 0.99
+        ))
+    }
+}
+
+public struct JagoTopUpEmailParser: BankEmailParsing {
+    public init() {}
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        let lines = JagoReceiptSupport.lines(in: email.body)
+        guard JagoReceiptSupport.contains("Thank you for trusting Jago! You just did a top up", in: lines),
+              JagoReceiptSupport.contains("Transaction Summary", in: lines),
+              let destination = JagoReceiptSupport.value(after: "To", in: lines),
+              let amount = JagoReceiptSupport.rupiahAmount(after: "Amount", in: lines),
+              let occurredAt = JagoReceiptSupport.date(after: "Transaction Date", in: lines, containsComma: false) else {
+            return .unsupported
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "jago",
+            occurredAt: occurredAt,
+            merchant: destination,
+            amount: amount,
+            kind: .transferOut,
+            confidence: 0.99
+        ))
+    }
+}
+
+private enum JagoReceiptSupport {
+    static func lines(in body: String) -> [String] {
+        body.components(separatedBy: .newlines).map {
+            $0.replacingOccurrences(of: "|", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+
+    static func contains(_ expected: String, in lines: [String]) -> Bool {
+        lines.contains { $0.localizedCaseInsensitiveContains(expected) }
+    }
+
+    static func value(after label: String, in lines: [String]) -> String? {
+        guard let index = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: CharacterSet(charactersIn: ":")).caseInsensitiveCompare(label) == .orderedSame
+        }) else {
+            return nil
+        }
+        return lines.dropFirst(index + 1).first { !$0.isEmpty && $0 != ":" }
+    }
+
+    static func rupiahAmount(after label: String, in lines: [String]) -> Decimal? {
+        guard let value = value(after: label, in: lines) else { return nil }
+        let numeric = value
+            .uppercased()
+            .replacingOccurrences(of: "RP", with: "")
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let amount = Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX")), amount > 0 else {
+            return nil
+        }
+        return amount
+    }
+
+    static func date(after label: String, in lines: [String], containsComma: Bool) -> Date? {
+        guard let value = value(after: label, in: lines) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Jakarta")
+        formatter.isLenient = false
+        formatter.dateFormat = containsComma ? "d MMMM yyyy, HH:mm" : "d MMMM yyyy HH:mm"
+        let dateValue = value.replacingOccurrences(
+            of: #"\s+WIB$"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+        return formatter.date(from: dateValue)
     }
 }
 

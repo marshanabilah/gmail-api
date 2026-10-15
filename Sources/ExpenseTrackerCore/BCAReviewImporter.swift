@@ -25,6 +25,10 @@ public struct BankReviewImporter: Sendable {
     private let mandiriPaymentParser: MandiriPaymentEmailParser
     private let mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser
     private let octoCimbQRPurchaseParser: OCTOCIMBQRPurchaseEmailParser
+    private let jagoStructuredPaymentParser: JagoStructuredPaymentEmailParser
+    private let jagoTransferParser: JagoTransferEmailParser
+    private let jagoTopUpParser: JagoTopUpEmailParser
+    private let jagoDebitCardParser: JagoDebitCardEmailParser
     private let categorizer: MerchantCategorizer
 
     public init(
@@ -33,6 +37,10 @@ public struct BankReviewImporter: Sendable {
         mandiriPaymentParser: MandiriPaymentEmailParser = MandiriPaymentEmailParser(),
         mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser = MandiriEMoneyTopUpEmailParser(),
         octoCimbQRPurchaseParser: OCTOCIMBQRPurchaseEmailParser = OCTOCIMBQRPurchaseEmailParser(),
+        jagoStructuredPaymentParser: JagoStructuredPaymentEmailParser = JagoStructuredPaymentEmailParser(),
+        jagoTransferParser: JagoTransferEmailParser = JagoTransferEmailParser(),
+        jagoTopUpParser: JagoTopUpEmailParser = JagoTopUpEmailParser(),
+        jagoDebitCardParser: JagoDebitCardEmailParser = JagoDebitCardEmailParser(),
         categorizer: MerchantCategorizer = MerchantCategorizer()
     ) {
         self.bcaParser = bcaParser
@@ -40,6 +48,10 @@ public struct BankReviewImporter: Sendable {
         self.mandiriPaymentParser = mandiriPaymentParser
         self.mandiriEMoneyTopUpParser = mandiriEMoneyTopUpParser
         self.octoCimbQRPurchaseParser = octoCimbQRPurchaseParser
+        self.jagoStructuredPaymentParser = jagoStructuredPaymentParser
+        self.jagoTransferParser = jagoTransferParser
+        self.jagoTopUpParser = jagoTopUpParser
+        self.jagoDebitCardParser = jagoDebitCardParser
         self.categorizer = categorizer
     }
 
@@ -81,7 +93,7 @@ public struct BankReviewImporter: Sendable {
                 imports.append(
                     ImportedTransaction(
                         draft: draft,
-                        category: categorizer.category(for: draft.merchant, rules: rules),
+                        category: suggestedCategory(for: draft, rules: rules),
                         status: .needsReview
                     )
                 )
@@ -98,6 +110,10 @@ public struct BankReviewImporter: Sendable {
 
     private func parse(_ candidate: BankEmail) -> BankEmailParseResult {
         let parsers: [any BankEmailParsing] = [
+            jagoStructuredPaymentParser,
+            jagoTransferParser,
+            jagoTopUpParser,
+            jagoDebitCardParser,
             bcaParser,
             mandiriTransferParser,
             mandiriPaymentParser,
@@ -110,6 +126,11 @@ public struct BankReviewImporter: Sendable {
             guard case .unsupported = result else { return result }
         }
         return .unsupported
+    }
+
+    private func suggestedCategory(for draft: TransactionDraft, rules: [MerchantRule]) -> String? {
+        guard draft.merchant != "Jago debit card spending" else { return nil }
+        return categorizer.category(for: draft.merchant, rules: rules)
     }
 }
 
