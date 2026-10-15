@@ -217,6 +217,225 @@ public struct MandiriTransferEmailParser: BankEmailParsing {
     }
 }
 
+public struct MandiriPaymentEmailParser: BankEmailParsing {
+    private let dateFormatter: DateFormatter
+
+    public init() {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Jakarta")
+        formatter.dateFormat = "d MMM yyyy HH:mm:ss"
+        formatter.isLenient = false
+        dateFormatter = formatter
+    }
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        let lines = normalizedLines(in: email.body)
+        guard lines.contains(where: { $0.caseInsensitiveCompare("Payment Successful") == .orderedSame }) else {
+            return .unsupported
+        }
+        guard
+            let date = field("Date", in: lines),
+            let time = field("Time", in: lines),
+            let occurredAt = dateFormatter.date(from: "\(date) \(timeWithoutZone(time))"),
+            let recipient = recipient(in: lines),
+            let amount = rupiahAmount(from: field("Transaction Amount", in: lines) ?? ""),
+            amount > 0,
+            let referenceNumber = field("Transaction Ref. No.", in: lines),
+            !referenceNumber.isEmpty
+        else {
+            return .unsupported
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "mandiri",
+            occurredAt: occurredAt,
+            merchant: recipient,
+            amount: amount,
+            kind: .qrisPayment,
+            confidence: 0.99
+        ))
+    }
+
+    private func field(_ label: String, in lines: [String]) -> String? {
+        for (index, line) in lines.enumerated() {
+            let cells = line.split(separator: "|", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if cells.count == 2,
+               cells[0].caseInsensitiveCompare(label) == .orderedSame,
+               !cells[1].isEmpty {
+                return cells[1]
+            }
+
+            let parts = line.split(separator: ":", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if parts.count == 2,
+               parts[0].caseInsensitiveCompare(label) == .orderedSame,
+               !parts[1].isEmpty {
+                return parts[1]
+            }
+
+            if line.caseInsensitiveCompare(label) == .orderedSame {
+                return lines.dropFirst(index + 1).first { !$0.isEmpty && $0 != ":" }
+            }
+        }
+        return nil
+    }
+
+    private func recipient(in lines: [String]) -> String? {
+        guard let recipientIndex = lines.firstIndex(where: { $0.caseInsensitiveCompare("Recipient") == .orderedSame }) else {
+            return nil
+        }
+        guard let recipient = lines.dropFirst(recipientIndex + 1).first(where: { !$0.isEmpty && $0 != ":" }) else {
+            return nil
+        }
+        guard !recipient.localizedCaseInsensitiveContains("Bank Mandiri") else { return nil }
+        let possibleLabel = recipient.split(maxSplits: 1, whereSeparator: { $0 == "|" || $0 == ":" })
+            .first?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? recipient
+        guard !["Date", "Time", "Transaction Amount", "Transaction Ref. No."].contains(where: {
+            possibleLabel.caseInsensitiveCompare($0) == .orderedSame
+        }) else { return nil }
+        guard !possibleLabel.localizedCaseInsensitiveContains("(ID") else { return nil }
+        return recipient
+    }
+
+    private func rupiahAmount(from value: String) -> Decimal? {
+        let numeric = value
+            .uppercased()
+            .replacingOccurrences(of: "RP", with: "")
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX"))
+    }
+
+    private func normalizedLines(in body: String) -> [String] {
+        body.components(separatedBy: .newlines).map { line in
+            var normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("|") {
+                normalized = normalized.trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return normalized
+        }
+    }
+
+    private func timeWithoutZone(_ value: String) -> String {
+        value.replacingOccurrences(
+            of: #"\s+WIB$"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+    }
+}
+
+public struct MandiriEMoneyTopUpEmailParser: BankEmailParsing {
+    private let dateFormatter: DateFormatter
+
+    public init() {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Jakarta")
+        formatter.dateFormat = "d MMM yyyy HH:mm:ss"
+        formatter.isLenient = false
+        dateFormatter = formatter
+    }
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        let lines = normalizedLines(in: email.body)
+        guard lines.contains(where: { $0.caseInsensitiveCompare("e-money Top-up Successful") == .orderedSame }) else {
+            return .unsupported
+        }
+        guard
+            let provider = field("Service Provider", in: lines),
+            provider.caseInsensitiveCompare("e-money") == .orderedSame,
+            let date = field("Date", in: lines),
+            let time = field("Time", in: lines),
+            let occurredAt = dateFormatter.date(from: "\(date) \(timeWithoutZone(time))"),
+            let amount = rupiahAmount(from: field("Top-up Amount", in: lines) ?? ""),
+            amount > 0,
+            let referenceNumber = field("Reference Number", in: lines),
+            !referenceNumber.isEmpty
+        else {
+            return .unsupported
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "mandiri",
+            occurredAt: occurredAt,
+            merchant: "e-money top-up",
+            amount: amount,
+            kind: .transferOut,
+            confidence: 0.99
+        ))
+    }
+
+    private func field(_ label: String, in lines: [String]) -> String? {
+        for (index, line) in lines.enumerated() {
+            let cells = line.split(separator: "|", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if cells.count == 2,
+               cells[0].caseInsensitiveCompare(label) == .orderedSame,
+               !cells[1].isEmpty {
+                return cells[1]
+            }
+
+            let parts = line.split(separator: ":", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if parts.count == 2,
+               parts[0].caseInsensitiveCompare(label) == .orderedSame,
+               !parts[1].isEmpty {
+                return parts[1]
+            }
+
+            if line.caseInsensitiveCompare(label) == .orderedSame {
+                return lines.dropFirst(index + 1).first { !$0.isEmpty && $0 != ":" }
+            }
+        }
+        return nil
+    }
+
+    private func rupiahAmount(from value: String) -> Decimal? {
+        let numeric = value
+            .uppercased()
+            .replacingOccurrences(of: "RP", with: "")
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX"))
+    }
+
+    private func normalizedLines(in body: String) -> [String] {
+        body.components(separatedBy: .newlines).map { line in
+            var normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("|") {
+                normalized = normalized.trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return normalized
+        }
+    }
+
+    private func timeWithoutZone(_ value: String) -> String {
+        value.replacingOccurrences(
+            of: #"\s+WIB$"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+    }
+}
+
 public enum BankEmailParseResult: Equatable, Sendable {
     case transaction(TransactionDraft)
     case ignored

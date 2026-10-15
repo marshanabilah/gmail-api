@@ -42,6 +42,23 @@ final class BCAReviewImportTests: XCTestCase {
         XCTAssertEqual(result.imports.first?.draft.kind, .transferOut)
     }
 
+    func testMandiriPaymentAndTopUpCandidatesEnterReviewWithMerchantRules() {
+        let result = BankReviewImporter().importCandidates(
+            [mandiriPaymentImportEmail(), mandiriTopUpImportEmail()],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: [
+                MerchantRule(merchantContains: "market", category: "Food & drink"),
+                MerchantRule(merchantContains: "e-money", category: "Transport")
+            ]
+        )
+
+        XCTAssertEqual(result.imports.map(\.draft.kind), [.qrisPayment, .transferOut])
+        XCTAssertEqual(result.imports.map(\.status), [.needsReview, .needsReview])
+        XCTAssertEqual(result.imports.map(\.category), ["Food & drink", "Transport"])
+        XCTAssertEqual(result.unsupportedCount, 0)
+    }
+
     func testCandidateUnsupportedByBothParsersIsCountedOnce() {
         let unsupported = BankEmail(
             messageID: "unknown-1",
@@ -245,6 +262,43 @@ private func mandiriImportEmail(
         Time | 14:00:45 WIB
         Transfer Amount | Rp 700.338,00
         Reference No. | 2610021121000000
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func mandiriPaymentImportEmail() -> BankEmail {
+    BankEmail(
+        messageID: "mandiri-payment-import",
+        sender: "alerts@example.test",
+        subject: "Payment notification",
+        body: """
+        Payment Successful
+        Recipient
+        Example Market - QRIS
+        Example City (ID)
+        Date | 11 Oct 2026
+        Time | 06:14:56 WIB
+        Transaction Amount | Rp 3.800,00
+        Transaction Ref. No. | 610116495573
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func mandiriTopUpImportEmail() -> BankEmail {
+    BankEmail(
+        messageID: "mandiri-top-up-import",
+        sender: "alerts@example.test",
+        subject: "e-money Top-up Successful",
+        body: """
+        e-money Top-up Successful
+        Service Provider
+        e-money
+        Date | 12 Oct 2026
+        Time | 20:36:39 WIB
+        Top-up Amount | Rp 50.000,00
+        Reference Number | 7026101220363000004
         """,
         receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
     )

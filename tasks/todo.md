@@ -466,3 +466,143 @@ Mandiri Transfer Spending Policy plan.
 - `tasks/todo.md`
 
 **Estimated scope:** Small: one logic file, one test file, and documentation.
+
+---
+
+# Additional Livin' by Mandiri Receipts Task List
+
+Module id: `mandiri-local-import`. The review-discard capability remains a
+separate approved plan and is not a dependency for these receipt parsers.
+
+## 16. Define strict Mandiri payment parsing with tests
+
+**Description:** Add redacted, core-only tests for a Payment Successful
+receipt, then implement the pure parser that accepts only its complete
+structured shape.
+
+**Acceptance criteria:**
+
+- [x] A complete payment receipt yields the recipient, Jakarta timestamp,
+  positive amount, `mandiri` bank ID, and `qrisPayment` kind.
+- [x] A missing success heading, recipient, transaction reference, or positive
+  amount returns `unsupported`.
+- [x] PANs, account fragments, location, and reference values do not become
+  part of the transaction draft.
+
+**Verification:**
+
+- [x] Observe the focused test fail before the parser is added.
+- [x] Focused tests pass: `swift test -j 1 --filter MandiriPaymentEmailParserTests`
+- [x] Existing Mandiri transfer tests still pass.
+
+**Dependencies:** Approved additional Mandiri receipt plan.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BankEmailParser.swift`
+- `Tests/ExpenseTrackerCoreTests/MandiriPaymentEmailParserTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 17. Define strict Mandiri e-money top-up parsing with tests
+
+**Description:** Add redacted tests for e-money Top-up Successful, then
+implement a pure parser with a safe constant merchant label.
+
+**Acceptance criteria:**
+
+- [x] A complete receipt yields `e-money top-up`, its Jakarta timestamp,
+  positive amount, `mandiri` bank ID, and `transferOut` kind.
+- [x] A wrong provider, missing success heading or reference, and a zero amount
+  return `unsupported`.
+- [x] No card fragment or reference value is used as the merchant label.
+
+**Verification:**
+
+- [x] Observe the focused test fail before the parser is added.
+- [x] Focused tests pass: `swift test -j 1 --filter MandiriEMoneyTopUpEmailParserTests`
+- [x] Existing transfer and payment parser tests still pass.
+
+**Dependencies:** Task 16 only for shared receipt parsing helpers; the
+independent behavior remains covered in its own tests.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BankEmailParser.swift`
+- `Tests/ExpenseTrackerCoreTests/MandiriEMoneyTopUpEmailParserTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## Checkpoint G: Mandiri receipt recognition
+
+- [x] All three Mandiri parser suites pass.
+- [x] Malformed and lookalike receipts create no transaction draft.
+- [x] Existing BCA tests remain green.
+
+## 18. Register the new parsers in the Review importer
+
+**Description:** Extend the deterministic bank parser chain, then prove a
+mixed scan stages valid BCA and all supported Mandiri receipts exactly once.
+
+**Acceptance criteria:**
+
+- [x] Valid payment and e-money top-up candidates enter Review with normal
+  merchant-rule suggestions.
+- [x] Existing message-ID and fingerprint duplicate protection applies to the
+  new formats.
+- [x] Unsupported candidates remain untouched and cannot block a valid import.
+
+**Verification:**
+
+- [x] Focused tests pass: `swift test -j 1 --filter BCAReviewImportTests`
+- [x] Full core suite passes: `swift test -j 1`
+
+**Dependencies:** Checkpoint G.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 19. Align import feedback and documentation
+
+**Description:** Keep owner-facing import feedback at bank level and update
+the README and specs to list the newly supported Mandiri receipts accurately.
+
+**Acceptance criteria:**
+
+- [x] User-facing import messages refer to BCA or Mandiri transactions, not
+  receipt mechanisms.
+- [x] README and active import specifications list Mandiri transfer, payment,
+  and e-money top-up support while retaining the Review-first rule.
+- [x] Documentation does not claim that raw email or sensitive banking fields
+  are persisted.
+
+**Verification:**
+
+- [x] `git diff --check` passes.
+- [x] A repository search finds no stale statement that Mandiri supports only
+  transfers.
+
+**Dependencies:** Task 18.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/DashboardView.swift`
+- `README.md`
+- `SPEC-mandiri-local-import.md`
+- `SPEC-gmail-mailbox-sync.md`
+- `SPEC-bca-local-import.md`
+
+**Estimated scope:** Medium: 5 files.
+
+## Checkpoint H: Ready for Gmail confirmation
+
+- [x] `swift test -j 1`, `swift run CoreVerification`, and the unsigned iOS
+  simulator build pass.
+- [x] New payment and top-up items begin in Review and count as spending only
+  after acceptance.
+- [ ] Optional manual Gmail sync confirms labeled Mandiri messages are visible
+  in Review without reconnecting or reinstalling the app.

@@ -60,6 +60,37 @@ final class GmailMessageBodyDecoderTests: XCTestCase {
         XCTAssertEqual(draft.amount, Decimal(string: "700338"))
     }
 
+    func testDecoderPreservesMandiriTableFieldsForThePaymentParser() throws {
+        let html = """
+        <h2>Payment Successful</h2>
+        <table>
+          <tr><td>Recipient</td></tr>
+          <tr><td>Example Market - QRIS</td></tr>
+          <tr><td>Example City (ID)</td></tr>
+          <tr><td>Date</td><td>11 Oct 2026</td></tr>
+          <tr><td>Time</td><td>06:14:56 WIB</td></tr>
+          <tr><td>Transaction Amount</td><td>Rp 3.800,00</td></tr>
+          <tr><td>Transaction Ref. No.</td><td>610116495573</td></tr>
+        </table>
+        """
+        let payload = GmailMessagePart(mimeType: "text/html", bodyData: base64URL(html))
+        let body = try GmailMessageBodyDecoder().decode(payload)
+
+        let result = MandiriPaymentEmailParser().parse(BankEmail(
+            messageID: "mandiri-payment-html-table",
+            sender: "alerts@example.test",
+            subject: "Payment Successful",
+            body: body,
+            receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+        ))
+
+        guard case .transaction(let draft) = result else {
+            return XCTFail("Expected HTML table receipt to parse as a Mandiri payment")
+        }
+        XCTAssertEqual(draft.merchant, "Example Market - QRIS")
+        XCTAssertEqual(draft.amount, Decimal(string: "3800"))
+    }
+
     func testDecoderRejectsInvalidBase64URLData() {
         let payload = GmailMessagePart(mimeType: "text/plain", bodyData: "not base64!", parts: [])
 

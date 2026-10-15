@@ -6,7 +6,7 @@ Module id: `bca-local-import`
 
 Turn in-memory Gmail candidates into local transactions on the iPhone. This
 module defines successful BCA QRIS payment handling. The shared Review importer
-also recognizes Livin' by Mandiri transfers under
+also recognizes the supported Livin' by Mandiri receipt formats under
 `SPEC-mandiri-local-import.md`. It stores the normalized transaction fields
 needed by the ledger, not raw email or sensitive bank metadata.
 
@@ -25,8 +25,8 @@ arrive here.
 1. The owner connects one Gmail account and taps Sync Gmail.
 2. `gmail-mailbox-sync` reads the owner-maintained `Transaction` label for
    the last 90 days and returns candidates in memory.
-3. The shared Review importer tries the BCA parser, then the Mandiri parser
-   defined by `mandiri-local-import`.
+3. The shared Review importer tries the BCA parser, then the Mandiri receipt
+   parsers defined by `mandiri-local-import`.
 4. A valid successful BCA QRIS payment becomes a local transaction with status
    `needsReview`. A matching local merchant rule may supply its suggested
    category.

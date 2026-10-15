@@ -19,8 +19,8 @@ The project contains a native SwiftUI foundation and a local import core.
 - A labeled message that Gmail refuses to return is skipped without discarding
   the rest of the scan; the app reports how many messages it skipped
 - Duplicate protection using Gmail message IDs and transaction fingerprints
-- BCA QRIS payments and Livin' by Mandiri transfers imported through a
-  deliberate Review flow
+- BCA QRIS payments and supported Livin' by Mandiri transactions imported
+  through a deliberate Review flow
 - Local merchant rules that suggest categories without auto-approving payments
 - Manual cash and e-wallet entries, custom categories, and light/dark appearance
 
@@ -47,13 +47,14 @@ Gmail, read-only
   → parse bank-specific fields on device
   → reject duplicates
   → suggest a category from local merchant rules when available
-  → send every new BCA payment or Mandiri transfer to Review
+  → send every new BCA or Mandiri transaction to Review
   → owner accepts a suggestion, or chooses a category directly
   → save the accepted transaction and update the local merchant rule
 ```
 
-Mandiri receipts are stored as transfers. They appear in Review and activity;
-once accepted with a category, they count toward confirmed spending totals.
+Mandiri transfers and e-money top-ups are stored as outgoing transfers. Mandiri
+payments are stored as payments. They all appear in Review and activity; once
+accepted with a category, they count toward confirmed spending totals.
 
 ## Supported message formats
 
@@ -62,7 +63,7 @@ once accepted with a category, they count toward confirmed spending totals.
 | BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
 | Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
 | OCTO CIMB | Successful transfer between own CIMB Niaga accounts | Parsed only; not imported in the current Gmail flow |
-| Mandiri | Successful Livin' transfer with recipient, date, time, amount, and reference number | Imported to Review as a transfer; counts as spending after acceptance |
+| Mandiri | Successful Livin' transfer, payment, or e-money top-up with its required receipt fields | Imported to Review; accepted transfers and e-money top-ups count as spending |
 
 ## Development
 
@@ -81,7 +82,7 @@ swift run CoreVerification
 ```
 
 This checks the import policy, duplicate handling, merchant categorization,
-BCA QRIS parsing, Mandiri transfer parsing, and Jago debit-card parsing with
+BCA QRIS parsing, Mandiri receipt parsing, and Jago debit-card parsing with
 redacted fixtures.
 
 ### Run the unit tests

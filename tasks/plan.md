@@ -358,3 +358,181 @@ README, specs, and task-record alignment
 - None for this implementation. A future account-move exclusion must be
   specified separately because the current email fields are not reliable enough
   to infer it.
+
+---
+
+# Implementation Plan: Discarding Review Transactions
+
+Module id: `review-discard`
+
+## Overview
+
+Add a deliberate Discard action to Review for transactions that do not belong
+in the owner's spending ledger. Discarding deletes the transaction record and
+persists only its Gmail message ID as a local marker. The marker prevents a
+future Gmail scan from staging the same receipt again.
+
+User-facing import copy refers only to BCA or Mandiri. QRIS payment and
+transfer are parser-level details, not labels the owner needs to interpret.
+
+## Architecture Decisions
+
+- Add a dedicated `DiscardedImportRecord` rather than reuse `ImportStatus`.
+  An ignored transaction record would remain local activity, whereas discard
+  must remove it from Review, Activity, and analytics.
+- Store only `sourceMessageID` in the discard record. This preserves the
+  no-sensitive-data boundary while allowing stable Gmail idempotency.
+- Extend the bank-agnostic importer with a `discardedMessageIDs` input. It
+  reports matching candidates as ignored without invoking a bank parser or
+  inserting a transaction.
+- Keep Discard available only in Review and require a confirmation dialog.
+  This is the last local decision before a record is removed.
+- Keep user-facing copy bank-level: “BCA or Mandiri transaction.” No UI copy
+  distinguishes QRIS payments from transfers.
+
+## Dependency Graph
+
+```text
+Discard marker model
+        |
+        v
+Importer suppression contract and core tests
+        |
+        v
+SwiftData persistence and Review discard confirmation
+        |
+        v
+Dashboard import feedback and documentation alignment
+```
+
+## Proposed Work
+
+1. Add tests for a discarded message ID and extend the core importer so it
+   ignores only that exact candidate while preserving normal imports.
+2. Add the SwiftData discard-marker model, supply its IDs to import previews,
+   and add a confirmation-backed Discard action in Review.
+3. Replace user-facing receipt-kind wording with BCA or Mandiri naming and
+   update the specs, README, plan, and task record.
+4. Run focused core tests, the full suite, core verification, an unsigned
+   simulator build, and one manual simulator discard plus re-sync check.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| A discarded receipt returns after the next sync | High | Persist the Gmail message ID before removing its transaction and test the importer boundary. |
+| Discarded activity remains in spending or Activity | High | Delete the transaction record rather than changing its status; verify each derived view uses current records. |
+| A user removes an item by mistake | Medium | Require a confirmation dialog that describes the local, non-reversible decision. |
+| Copy exposes parser internals | Low | Use BCA or Mandiri in every owner-facing import message. |
+
+## Open Questions
+
+- None for this version. Undo, a discarded-items history, and bulk discard
+  remain separate future features.
+
+---
+
+# Implementation Plan: Additional Livin' by Mandiri Receipts
+
+Module id: `mandiri-local-import`
+
+## Overview
+
+Extend the existing Mandiri Review import with two strict, locally parsed
+receipt shapes: Payment Successful and e-money Top-up Successful. Each valid
+receipt enters Review, follows the established category workflow and duplicate
+protection, and remains separate from Gmail after the scan. An accepted e-money
+top-up uses the existing `transferOut` policy and therefore counts as spending.
+
+## Architecture Decisions
+
+- Add dedicated pure parsers for Mandiri payment and e-money top-up receipts.
+  Keep `MandiriTransferEmailParser` unchanged so each strict receipt contract
+  remains easy to test and a future email variation does not blur the rules.
+- Keep the strict parsers separate because their required receipt fields differ.
+  Their focused tests pin the common line, Jakarta-date, and rupiah behavior;
+  extract a shared helper only when another format makes that trade-off useful.
+- The bank-agnostic importer tries BCA, Mandiri transfer, Mandiri payment, and
+  Mandiri e-money top-up parsers in that order. It stops at the first recognized
+  or ignored result, so a candidate produces at most one Review item.
+- Use `qrisPayment` for a Mandiri payment and `transferOut` for an e-money
+  top-up. Both already become spending only after the owner accepts and
+  categorizes them, so no analytics or persistence schema change is needed.
+- The e-money merchant label is the constant `e-money top-up`. Do not persist a
+  card fragment, reference number, PAN, location, or account details.
+- Owner-facing import text names the bank, not the receipt mechanism. It says
+  BCA or Mandiri transaction rather than QRIS payment or transfer.
+
+## Dependency Graph
+
+```text
+Strict payment and e-money parser tests
+        |
+        v
+Pure receipt parsers and shared parse helpers
+        |
+        v
+BankReviewImporter registration and mixed-candidate tests
+        |
+        v
+Dashboard wording and documentation alignment
+        |
+        v
+Core suite, app build, optional live Gmail confirmation
+```
+
+## Proposed Work
+
+1. Write failing, anonymized parser tests for Payment Successful. Verify its
+   recipient, Jakarta timestamp, amount, `qrisPayment` kind, and rejection of
+   a missing success heading, recipient, reference, or positive amount.
+2. Write failing, anonymized parser tests for e-money Top-up Successful. Verify
+   the stable `e-money top-up` label, Jakarta timestamp, amount, `transferOut`
+   kind, and rejection of an invalid provider, missing reference, or zero
+   amount.
+3. Add the two parsers and any narrowly shared receipt-field helper. Register
+   them in the bank-agnostic importer and add mixed-candidate, duplicate, and
+   merchant-rule tests. Confirm neither parser can store sensitive receipt
+   fields.
+4. Replace the remaining owner-facing receipt-type wording with BCA or Mandiri
+   naming and update the README and Gmail/import specs to reflect all supported
+   Mandiri formats.
+5. Run focused parser and importer tests, the complete core suite, core
+   verification, and the unsigned simulator build. A live Gmail scan is an
+   optional final confirmation and should only happen after unit verification.
+
+## Verification Checkpoints
+
+### Checkpoint: Receipt recognition
+
+- Both new parser test groups pass.
+- A malformed or lookalike receipt returns `unsupported` and creates no draft.
+- Existing BCA and Mandiri transfer tests still pass.
+
+### Checkpoint: Import integration
+
+- A mixed candidate scan imports each supported BCA or Mandiri draft once.
+- Duplicate message IDs and fingerprints remain skipped.
+- Every recognized item starts in Review, including top-ups.
+
+### Checkpoint: Ready to test in Gmail
+
+- Core suite, `CoreVerification`, and unsigned simulator build pass.
+- Import feedback correctly distinguishes no new import from unsupported
+  messages without exposing raw email data.
+- User may run one manual sync to confirm real labeled Mandiri messages enter
+  Review.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| A generic payment message is mistaken for a bank receipt | High | Require the success heading and every structured field before creating a draft. |
+| HTML tables lose field boundaries | High | Keep the existing HTML table-decoding regression test and add receipt fixtures with separate lines. |
+| E-money account fragments enter the local ledger | High | Use a constant label and test that no card fragment is used as a merchant. |
+| A parser blocks another valid Mandiri format | Medium | Keep a fixed parser order and test a mixed scan through the bank-agnostic importer. |
+| UI wording promises an import when none occurred | Medium | Test and review zero-import copy separately from parser results. |
+
+## Open Questions
+
+- None. The owner confirmed that accepted e-money top-ups count as spending.

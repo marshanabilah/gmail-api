@@ -21,16 +21,22 @@ public struct BankReviewImportResult: Equatable, Sendable {
 
 public struct BankReviewImporter: Sendable {
     private let bcaParser: BCAEmailParser
-    private let mandiriParser: MandiriTransferEmailParser
+    private let mandiriTransferParser: MandiriTransferEmailParser
+    private let mandiriPaymentParser: MandiriPaymentEmailParser
+    private let mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser
     private let categorizer: MerchantCategorizer
 
     public init(
         bcaParser: BCAEmailParser = BCAEmailParser(),
-        mandiriParser: MandiriTransferEmailParser = MandiriTransferEmailParser(),
+        mandiriTransferParser: MandiriTransferEmailParser = MandiriTransferEmailParser(),
+        mandiriPaymentParser: MandiriPaymentEmailParser = MandiriPaymentEmailParser(),
+        mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser = MandiriEMoneyTopUpEmailParser(),
         categorizer: MerchantCategorizer = MerchantCategorizer()
     ) {
         self.bcaParser = bcaParser
-        self.mandiriParser = mandiriParser
+        self.mandiriTransferParser = mandiriTransferParser
+        self.mandiriPaymentParser = mandiriPaymentParser
+        self.mandiriEMoneyTopUpParser = mandiriEMoneyTopUpParser
         self.categorizer = categorizer
     }
 
@@ -82,9 +88,18 @@ public struct BankReviewImporter: Sendable {
     }
 
     private func parse(_ candidate: BankEmail) -> BankEmailParseResult {
-        let bcaResult = bcaParser.parse(candidate)
-        guard case .unsupported = bcaResult else { return bcaResult }
-        return mandiriParser.parse(candidate)
+        let parsers: [any BankEmailParsing] = [
+            bcaParser,
+            mandiriTransferParser,
+            mandiriPaymentParser,
+            mandiriEMoneyTopUpParser
+        ]
+
+        for parser in parsers {
+            let result = parser.parse(candidate)
+            guard case .unsupported = result else { return result }
+        }
+        return .unsupported
     }
 }
 

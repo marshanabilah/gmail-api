@@ -138,8 +138,9 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   excluded.
 - Test expired authorisation, HTTP failure, malformed MIME, and rate-limit
   responses as non-destructive errors with no partial local writes.
-- Test an HTML-table Mandiri receipt through MIME decoding and the downstream
-  parser, so table fields do not collapse into unsupported text.
+- Test HTML-table Mandiri transfer and payment receipts through MIME decoding
+  and the downstream parsers, so table fields do not collapse into unsupported
+  text.
 - Test that one message-level 403 does not discard other readable candidates
   and that the completed scan reports the skipped count.
 - After core tests and the simulator build pass, perform one opt-in scan of
@@ -159,7 +160,7 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   the local importer.
 - Exclude a confirmed Flip receipt before parser selection.
 - Preserve Gmail message IDs for the downstream local duplicate check.
-- Leave every recognized BCA payment and Mandiri transfer in Review through
+- Leave every recognized BCA or Mandiri transaction in Review through
   the downstream importer, even when a local merchant rule suggests its
   category.
 - Return an understandable, retryable state when Gmail is unavailable.

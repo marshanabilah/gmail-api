@@ -329,7 +329,7 @@ struct DashboardView: View {
         }
         let unsupported = preview.ignoredCount + preview.unsupportedCount
         if unsupported > 0 {
-            details.append("\(unsupported) \(unsupported == 1 ? "email was" : "emails were") not a supported BCA QRIS payment or Mandiri transfer, so the app left it untouched.")
+            details.append("\(unsupported) \(unsupported == 1 ? "email was" : "emails were") not a supported BCA or Mandiri transaction, so the app left it untouched.")
         }
         return details.joined(separator: " ")
     }

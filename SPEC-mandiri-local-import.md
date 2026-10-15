@@ -4,28 +4,30 @@ Module id: `mandiri-local-import`
 
 ## Objective
 
-Extend the existing manual Gmail import so a successful Livin' by Mandiri
-transfer receipt can become a normalized local transaction on the iPhone. The
-app reads only candidates already returned by `gmail-mailbox-sync`, parses the
-known English email format, and sends every new Mandiri transfer to Review.
+Extend the existing manual Gmail import so supported Livin' by Mandiri
+receipts can become normalized local transactions on the iPhone. The app reads
+only candidates already returned by `gmail-mailbox-sync`, parses the known
+English receipt formats, and sends every new Mandiri transaction to Review.
 
 Mandiri transfers remain `transferOut` records so the source activity stays
 truthful. Once the owner accepts one in Review, it contributes to confirmed
 spending totals and the category selected by the owner.
 
-Policy assumption for this personal ledger: every accepted outgoing Mandiri
-transfer is an expense. The current receipt does not reliably distinguish an
-expense from a move between the owner's accounts, so the first version does
-not try to infer that distinction. Review remains the owner's safeguard before
-an amount affects analytics.
+Policy assumption for this personal ledger: every accepted Mandiri outgoing
+transfer and accepted e-money top-up is an expense. The receipts do not
+reliably distinguish an expense from a move between the owner's accounts, so
+the first version does not try to infer that distinction. Review remains the
+owner's safeguard before an amount affects analytics.
 
 The app stores only normalized transaction fields. It does not store the raw
 email, recipient account number, source account fragment, reference number, or
 email headers.
 
-## Supported Email Shape
+## Supported Receipt Shapes
 
-A candidate is importable only when all of these conditions hold:
+A candidate is importable only when it matches one complete shape below.
+
+### Transfer Successful
 
 - The body contains the Livin' heading `Transfer Successful`.
 - A recipient name is present under `Recipient`.
@@ -36,14 +38,44 @@ A candidate is importable only when all of these conditions hold:
 - `Reference No.` is present so malformed receipts are not accepted, although
   the value is not persisted.
 
-The normalized draft contains:
+The normalized draft uses the recipient as its merchant label and
+`transferOut` as its kind.
+
+### Payment Successful
+
+- The body contains the Livin' heading `Payment Successful`.
+- A recipient name is present under `Recipient`.
+- `Date` and `Time` parse with the same Jakarta rules as a transfer.
+- `Transaction Amount` parses as a positive Indonesian rupiah amount.
+- `Transaction Ref. No.` is present.
+
+The normalized draft uses the recipient as its merchant label and
+`qrisPayment` as its kind. QRIS reference, merchant PAN, customer PAN,
+terminal ID, acquirer, account fragments, and location are validation context
+only when present. None are stored.
+
+### e-money Top-up Successful
+
+- The body contains `e-money Top-up Successful`.
+- `Service Provider` identifies `e-money`.
+- `Date` and `Time` parse with the same Jakarta rules as a transfer.
+- `Top-up Amount` parses as a positive Indonesian rupiah amount.
+- `Reference Number` is present.
+
+The normalized draft uses the stable merchant label `e-money top-up` rather
+than an account fragment, and `transferOut` as its kind. Once accepted, it
+counts as spending under the approved personal-ledger policy.
+
+### Shared Requirements
+
+- Every supported draft contains:
 
 - Gmail message ID for local idempotency.
 - Bank ID `mandiri`.
 - Parsed Jakarta transaction time.
-- Recipient name as the transaction merchant label.
-- Transfer amount.
-- Transaction kind `transferOut`.
+- An approved merchant label.
+- The parsed amount.
+- The kind stated by its receipt shape.
 - Parser confidence appropriate for a fully structured receipt.
 
 ## User Flow
@@ -53,8 +85,8 @@ The normalized draft contains:
 2. `gmail-mailbox-sync` removes confirmed Flip receipts and returns the other
    candidates in memory.
 3. The local importer tries the supported BCA and Mandiri parsers.
-4. Valid, non-duplicate BCA payments and Mandiri transfers are shown in one
-   import confirmation.
+4. Valid, non-duplicate BCA and Mandiri transactions are shown in one import
+   confirmation.
 5. After confirmation, each new record starts in Review. A saved merchant rule
    may suggest a category but does not accept the record.
 6. Choosing or creating a category accepts that record immediately. Accepting
@@ -93,7 +125,7 @@ missing field. Keep the parser pure and independent of Gmail, SwiftUI, and
 SwiftData.
 
 ```swift
-guard isLivinTransfer(email.body) else { return .unsupported }
+guard isSupportedLivinReceipt(email.body) else { return .unsupported }
 guard let occurredAt, let recipient, let amount else { return .unsupported }
 
 return .transaction(TransactionDraft(
@@ -125,8 +157,13 @@ return .transaction(TransactionDraft(
 - Add failing tests before changing the importer or parser.
 - Use only anonymized Livin' fixtures with synthetic names, account fragments,
   reference numbers, message IDs, dates, and amounts.
-- Cover one valid receipt, a missing recipient, missing reference number,
-  invalid or zero amount, and a lookalike message without the Livin' heading.
+- Cover valid Transfer Successful, Payment Successful, and e-money Top-up
+  Successful receipts, plus a missing required field, invalid or zero amount,
+  and a lookalike message without the required heading.
+- Prove a payment receipt stores only its recipient label and never a PAN,
+  account fragment, reference number, or location.
+- Prove an e-money top-up uses `e-money top-up` rather than an account
+  fragment, and counts as spending only after the owner accepts it.
 - Cover message-ID and fingerprint duplicate handling.
 - Cover a mixed scan containing valid BCA, valid Mandiri, unsupported, and
   Flip-excluded candidates.
@@ -141,9 +178,9 @@ return .transaction(TransactionDraft(
 
 - Parse locally on the iPhone.
 - Use the existing one-account, read-only, manually triggered Gmail flow.
-- Route recognized Mandiri transfers to Review.
-- Count accepted Mandiri `transferOut` records in confirmed spending and their
-  selected category total.
+- Route recognized Mandiri transactions to Review.
+- Count accepted Mandiri `transferOut` records, including e-money top-ups, in
+  confirmed spending and their selected category total.
 - Preserve the current 90-day window, exact `Transaction` label, and Flip
   exclusion.
 - Persist only fields already represented by `TransactionRecord`.
@@ -154,7 +191,8 @@ return .transaction(TransactionDraft(
   recipient name.
 - Excluding selected Mandiri recipients or account moves from spending after
   this initial policy ships.
-- Supporting a different Mandiri email template or language.
+- Supporting a different Mandiri email template or language beyond the three
+  receipt shapes above.
 - Storing reference numbers, account fragments, recipient bank details, raw
   email text, or headers.
 - Changing Gmail scopes, labels, scan cadence, or account count.
@@ -162,7 +200,7 @@ return .transaction(TransactionDraft(
 ### Never
 
 - Import a Flip receipt as a Mandiri receipt.
-- Infer a missing recipient, timestamp, amount, reference, or transaction
+- Infer a missing merchant label, timestamp, amount, reference, or transaction
   type.
 - Change how other transaction kinds contribute to spending analytics.
 - Log or persist raw email contents or sensitive banking fields.
@@ -170,30 +208,31 @@ return .transaction(TransactionDraft(
 
 ## Success Criteria
 
-- A valid anonymized Livin' transfer receipt produces one Mandiri
-  `needsReview` record with the correct recipient, Jakarta timestamp, amount,
-  and `transferOut` kind.
+- Valid anonymized Livin' transfer, payment, and e-money top-up receipts each
+  produce one Mandiri `needsReview` record with the correct merchant label,
+  Jakarta timestamp, amount, and kind.
 - Missing or invalid required fields create no record.
 - Repeat message IDs and matching fingerprints create no duplicate.
 - A mixed candidate set imports valid BCA and Mandiri records without one
   parser blocking the other.
 - Flip receipts and unsupported bank formats remain untouched.
 - A merchant rule can suggest a category but cannot bypass Review.
-- Categorizing and accepting a Mandiri transfer adds its amount to the selected
-  month's spending total and chosen category.
+- Categorizing and accepting a Mandiri transfer or e-money top-up adds its
+  amount to the selected month's spending total and chosen category.
 - Core tests and the simulator build pass.
 - README and existing Gmail/BCA documentation describe the multi-bank import
   behavior accurately before implementation is considered complete.
 
 ## Open Questions
 
-- Does the owner want a future way to mark an accepted Mandiri transfer as an
-  account move so it is excluded from spending? This version intentionally
-  does not infer that from a recipient name or bank.
+- None for the three supported receipt shapes. A future account-move action
+  would be a separate capability because the current emails do not identify it
+  reliably.
 
 ## Implementation Status
 
-The parser, shared BCA plus Mandiri Review import, duplicate protection,
-merchant-rule suggestions, bank-neutral import confirmation, and accepted
-transfer spending policy are implemented. Live Gmail sign-out and restoration
-checks remain deferred and are not required to verify this parser.
+Transfer, payment, and e-money top-up support, the shared BCA plus Mandiri
+Review import, duplicate protection, merchant-rule suggestions, bank-neutral
+import confirmation, and accepted transfer spending policy are implemented.
+Live Gmail sign-out and restoration checks remain deferred and are not required
+to verify these parsers.
