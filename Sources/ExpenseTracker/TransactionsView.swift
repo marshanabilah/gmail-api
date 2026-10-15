@@ -212,6 +212,7 @@ struct TransactionCategoryEditor: View {
     @State private var category: String
     @State private var remembersMerchant = false
     @State private var showsNewCategory = false
+    @State private var showsDeleteConfirmation = false
     @State private var validationMessage: String?
 
     init(transaction: TransactionRecord) {
@@ -250,6 +251,12 @@ struct TransactionCategoryEditor: View {
                     Text("This does not recategorize transactions you already saved.")
                 }
 
+                Section {
+                    Button("Delete transaction", role: .destructive) {
+                        showsDeleteConfirmation = true
+                    }
+                }
+
                 if let validationMessage {
                     Section {
                         Text(validationMessage)
@@ -271,6 +278,18 @@ struct TransactionCategoryEditor: View {
             NewCategoryView(existingNames: categories) { newCategory in
                 category = newCategory
             }
+        }
+        .confirmationDialog(
+            "Delete this transaction?",
+            isPresented: $showsDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                deleteTransaction()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes it from this iPhone. If it came from Gmail, it will not return after a later sync. Gmail is unchanged.")
         }
     }
 
@@ -294,6 +313,20 @@ struct TransactionCategoryEditor: View {
             dismiss()
         } catch {
             validationMessage = "Could not save the category. Try again."
+        }
+    }
+
+    private func deleteTransaction() {
+        if TransactionDeletion.shouldSuppressFutureImport(bankID: transaction.bankID) {
+            modelContext.insert(DiscardedImportRecord(sourceMessageID: transaction.sourceMessageID))
+        }
+        modelContext.delete(transaction)
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            validationMessage = "Could not delete this transaction. Try again."
         }
     }
 }

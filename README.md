@@ -24,7 +24,7 @@ The project contains a native SwiftUI foundation and a local import core.
 - BCA QRIS payments and supported Livin' by Mandiri transactions imported
   through a deliberate Review flow
 - Local merchant rules that suggest categories without auto-approving payments
-- Manual cash and e-wallet entries, custom categories, and light/dark appearance
+- Manual cash and e-wallet entries, custom categories, transaction deletion, and light/dark appearance
 
 The app reads only the owner-maintained `Transaction` label when they tap
 Sync Gmail. It does not modify Gmail and does not run in the background.

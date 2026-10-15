@@ -30,6 +30,12 @@ public enum ManualTransactionSource: String, CaseIterable, Sendable {
     }
 }
 
+public enum TransactionDeletion {
+    public static func shouldSuppressFutureImport(bankID: String) -> Bool {
+        !ManualTransactionSource.allCases.map(\.rawValue).contains(bankID)
+    }
+}
+
 public enum ExpenseCategory {
     public static let defaultNames = ["Food & drink", "Transport", "Shopping", "Bills", "Health"]
 
