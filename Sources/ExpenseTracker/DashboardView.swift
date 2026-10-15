@@ -6,6 +6,7 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     @Query private var merchantRuleRecords: [MerchantRuleRecord]
+    @Query private var discardedImportRecords: [DiscardedImportRecord]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showsDisconnectConfirmation = false
     @State private var bankImportPreview: BankReviewImportResult?
@@ -282,6 +283,7 @@ struct DashboardView: View {
         let preview = sync.bankReviewPreview(
             existingMessageIDs: Set(transactions.map(\.sourceMessageID)),
             existingFingerprints: Set(transactions.map(\.fingerprint)),
+            discardedMessageIDs: Set(discardedImportRecords.map(\.sourceMessageID)),
             rules: merchantRules
         )
         guard let preview else {
@@ -329,7 +331,7 @@ struct DashboardView: View {
         }
         let unsupported = preview.ignoredCount + preview.unsupportedCount
         if unsupported > 0 {
-            details.append("\(unsupported) \(unsupported == 1 ? "email was" : "emails were") not a supported BCA or Mandiri transaction, so the app left it untouched.")
+            details.append("\(unsupported) \(unsupported == 1 ? "email could not" : "emails could not") be added to Review, so the app left \(unsupported == 1 ? "it" : "them") untouched.")
         }
         return details.joined(separator: " ")
     }

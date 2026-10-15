@@ -606,3 +606,103 @@ the README and specs to list the newly supported Mandiri receipts accurately.
   after acceptance.
 - [ ] Optional manual Gmail sync confirms labeled Mandiri messages are visible
   in Review without reconnecting or reinstalling the app.
+
+---
+
+# Discarding Review Transactions Task List
+
+Module id: `review-discard`.
+
+## 20. Suppress discarded Gmail message IDs in the core importer
+
+**Description:** Add a failing importer test, then accept a set of locally
+discarded Gmail message IDs at the import boundary. The importer must count an
+exact match as ignored before parser selection and leave unrelated candidates
+unchanged.
+
+**Acceptance criteria:**
+
+- [x] A valid candidate with a discarded message ID creates no import and
+  increments the ignored count.
+- [x] A different valid candidate still enters Review normally.
+- [x] Existing duplicate, unsupported, and merchant-rule behavior remains
+  unchanged.
+
+**Verification:**
+
+- [x] Observe the focused test fail before the importer change.
+- [x] Focused tests pass: `swift test -j 1 --filter BCAReviewImportTests`
+
+**Dependencies:** Approved `SPEC-review-discard.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 21. Persist discard markers and pass them into previews
+
+**Description:** Add the local SwiftData model containing only the Gmail
+message ID, include it in the model container, and pass its IDs to the import
+preview.
+
+**Acceptance criteria:**
+
+- [x] A discard marker stores only a unique `sourceMessageID`.
+- [x] Import previews use existing transaction IDs, fingerprints, and discarded
+  message IDs together.
+- [x] No raw email, merchant, amount, or category is saved in the marker.
+
+**Verification:**
+
+- [x] The iOS simulator build succeeds with code signing disabled.
+- [x] Code inspection confirms the marker contains no extra fields.
+
+**Dependencies:** Task 20.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+- `Sources/ExpenseTracker/ExpenseTrackerApp.swift`
+- `Sources/ExpenseTracker/SyncModel.swift`
+- `Sources/ExpenseTracker/DashboardView.swift`
+
+**Estimated scope:** Medium: 4 files.
+
+## 22. Add Review discard confirmation
+
+**Description:** Add a per-item Discard action in Review. Confirmation creates
+the marker and deletes the pending transaction in one local save, so it leaves
+Review, Activity, and analytics.
+
+**Acceptance criteria:**
+
+- [x] Every Review item exposes Discard.
+- [x] Discard requires a confirmation that explains the local, non-reversible
+  effect and future import suppression.
+- [x] Confirming creates the marker and removes only the selected transaction.
+
+**Verification:**
+
+- [x] Unsigned simulator build succeeds.
+- [ ] Manual simulator check: discard one Review item, confirm it disappears,
+  and verify accepted or other pending items remain.
+
+**Dependencies:** Task 21.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/ReviewView.swift`
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## Checkpoint I: Discard complete
+
+- [x] Full core suite and `CoreVerification` pass.
+- [x] Unsigned simulator build succeeds.
+- [x] A discarded candidate is ignored in a later import preview.
+- [x] README, specs, plan, and task record accurately describe the completed
+  local discard behavior.

@@ -88,6 +88,10 @@ SPEC-gmail-auth.md                          -> Existing connection and read-only
 BCA and Mandiri local-import modules own parser selection, Review creation,
 duplicate protection, and SwiftData writes.
 
+The downstream Review importer also receives local discard markers. A marker
+contains only a Gmail message ID and prevents that exact candidate from
+returning to Review after the owner discards it on the iPhone.
+
 ## Code Style
 
 Keep network access behind a small protocol. Make Gmail-specific transport

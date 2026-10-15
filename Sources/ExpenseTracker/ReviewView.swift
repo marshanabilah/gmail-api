@@ -7,6 +7,7 @@ struct ReviewView: View {
     @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
     @Query private var merchantRules: [MerchantRuleRecord]
     @State private var transactionAwaitingCategory: TransactionRecord?
+    @State private var transactionAwaitingDiscard: TransactionRecord?
     @State private var categoryUpdateSummary: String?
 
     private var categories: [String] {
@@ -48,6 +49,11 @@ struct ReviewView: View {
                             } label: {
                                 Label(transaction.category ?? "Choose category", systemImage: "tag")
                             }
+                            Button(role: .destructive) {
+                                transactionAwaitingDiscard = transaction
+                            } label: {
+                                Label("Discard", systemImage: "trash")
+                            }
                         } header: {
                             Text("Import confidence \(Int(transaction.confidence * 100))%")
                         }
@@ -80,12 +86,36 @@ struct ReviewView: View {
                 chooseCategory(transaction, as: newCategory)
             }
         }
+        .confirmationDialog(
+            "Discard this transaction?",
+            isPresented: Binding(
+                get: { transactionAwaitingDiscard != nil },
+                set: { if !$0 { transactionAwaitingDiscard = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Discard", role: .destructive) {
+                if let transactionAwaitingDiscard {
+                    discard(transactionAwaitingDiscard)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes the transaction from this iPhone and keeps the same Gmail email from returning after a later sync.")
+        }
     }
 
     private func chooseCategory(_ transaction: TransactionRecord, as category: String) {
         transaction.category = category
         categoryUpdateSummary = nil
         accept(transaction)
+    }
+
+    private func discard(_ transaction: TransactionRecord) {
+        modelContext.insert(DiscardedImportRecord(sourceMessageID: transaction.sourceMessageID))
+        modelContext.delete(transaction)
+        try? modelContext.save()
+        transactionAwaitingDiscard = nil
     }
 
     private func accept(_ transaction: TransactionRecord) {

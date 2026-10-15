@@ -44,6 +44,7 @@ public struct BankReviewImporter: Sendable {
         _ candidates: [BankEmail],
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
+        discardedMessageIDs: Set<String> = [],
         rules: [MerchantRule]
     ) -> BankReviewImportResult {
         var seenMessageIDs = existingMessageIDs
@@ -54,6 +55,11 @@ public struct BankReviewImporter: Sendable {
         var unsupportedCount = 0
 
         for candidate in candidates {
+            if discardedMessageIDs.contains(candidate.messageID) {
+                ignoredCount += 1
+                continue
+            }
+
             switch parse(candidate) {
             case .ignored:
                 ignoredCount += 1

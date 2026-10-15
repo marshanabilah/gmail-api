@@ -75,6 +75,7 @@ final class SyncModel {
     func bankReviewPreview(
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
+        discardedMessageIDs: Set<String>,
         rules: [MerchantRule]
     ) -> BankReviewImportResult? {
         guard !mailbox.latestCandidates.isEmpty else { return nil }
@@ -82,6 +83,7 @@ final class SyncModel {
             mailbox.latestCandidates,
             existingMessageIDs: existingMessageIDs,
             existingFingerprints: existingFingerprints,
+            discardedMessageIDs: discardedMessageIDs,
             rules: rules
         )
     }

@@ -19,6 +19,8 @@ The project contains a native SwiftUI foundation and a local import core.
 - A labeled message that Gmail refuses to return is skipped without discarding
   the rest of the scan; the app reports how many messages it skipped
 - Duplicate protection using Gmail message IDs and transaction fingerprints
+- A local Review discard action that removes a non-spending item and prevents
+  the same Gmail message from being imported again
 - BCA QRIS payments and supported Livin' by Mandiri transactions imported
   through a deliberate Review flow
 - Local merchant rules that suggest categories without auto-approving payments
@@ -35,6 +37,7 @@ Gmail is an import source, not the place where the ledger lives.
 - The transaction store is local to the device.
 - Parsers extract only the fields needed for the ledger.
 - Account numbers, PANs, terminal IDs, and bank reference numbers are not persisted as transactions.
+- Discard markers retain only a Gmail message ID, not bank or transaction data.
 - Categorization rules stay on the device.
 
 An optional cloud categorizer may be added later, but it should receive only a normalized merchant name and transaction context, never a complete bank email.
@@ -49,6 +52,7 @@ Gmail, read-only
   → suggest a category from local merchant rules when available
   → send every new BCA or Mandiri transaction to Review
   → owner accepts a suggestion, or chooses a category directly
+  → owner may discard an item that does not belong in the ledger
   → save the accepted transaction and update the local merchant rule
 ```
 

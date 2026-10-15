@@ -7,7 +7,12 @@ struct ExpenseTrackerApp: App {
 
     init() {
         do {
-            container = try ModelContainer(for: TransactionRecord.self, MerchantRuleRecord.self, CategoryRecord.self)
+            container = try ModelContainer(
+                for: TransactionRecord.self,
+                MerchantRuleRecord.self,
+                CategoryRecord.self,
+                DiscardedImportRecord.self
+            )
         } catch {
             fatalError("Could not create the local transaction store: \(error.localizedDescription)")
         }

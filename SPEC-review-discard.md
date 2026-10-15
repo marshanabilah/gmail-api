@@ -112,3 +112,9 @@ if discardedMessageIDs.contains(draft.sourceMessageID) {
 
 - None for this first version. Undo and a visible discarded-items history are
   intentionally deferred.
+
+## Implementation Status
+
+The local discard marker, core import suppression, and confirmation-backed
+Review action are implemented. A manual simulator discard and later Gmail
+re-sync remain optional final checks.

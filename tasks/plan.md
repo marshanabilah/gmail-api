@@ -430,6 +430,13 @@ Dashboard import feedback and documentation alignment
 - None for this version. Undo, a discarded-items history, and bulk discard
   remain separate future features.
 
+## Implementation Status
+
+Core suppression, SwiftData marker persistence, Review confirmation, and
+bank-level owner-facing import feedback are implemented. Core tests,
+CoreVerification, and the unsigned simulator build passed. A manual simulator
+discard and later Gmail re-sync remain optional final checks.
+
 ---
 
 # Implementation Plan: Additional Livin' by Mandiri Receipts

@@ -58,3 +58,12 @@ final class CategoryRecord {
         self.name = name
     }
 }
+
+@Model
+final class DiscardedImportRecord {
+    @Attribute(.unique) var sourceMessageID: String
+
+    init(sourceMessageID: String) {
+        self.sourceMessageID = sourceMessageID
+    }
+}

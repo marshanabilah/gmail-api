@@ -59,6 +59,23 @@ final class BCAReviewImportTests: XCTestCase {
         XCTAssertEqual(result.unsupportedCount, 0)
     }
 
+    func testDiscardedMessageIDIsIgnoredBeforeParsingAndOtherCandidatesStillImport() {
+        let discarded = bcaEmail(id: "discarded-message")
+        let importable = bcaEmail(id: "still-importable", merchant: "Example Market")
+
+        let result = BankReviewImporter().importCandidates(
+            [discarded, importable],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            discardedMessageIDs: ["discarded-message"],
+            rules: []
+        )
+
+        XCTAssertEqual(result.imports.map(\.draft.sourceMessageID), ["still-importable"])
+        XCTAssertEqual(result.ignoredCount, 1)
+        XCTAssertEqual(result.unsupportedCount, 0)
+    }
+
     func testCandidateUnsupportedByBothParsersIsCountedOnce() {
         let unsupported = BankEmail(
             messageID: "unknown-1",

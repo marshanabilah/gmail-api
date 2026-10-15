@@ -68,6 +68,8 @@ The local transaction stores:
 - If a local `TransactionRecord` already has the same `sourceMessageID`, skip
   the candidate.
 - If a prior record has the same normalized fingerprint, skip the candidate.
+- If a local discard marker has the candidate's Gmail message ID, ignore the
+  candidate so it cannot return to Review.
 - Duplicate checks happen before any SwiftData insertion.
 - A skipped duplicate does not alter its existing category, status, or manual
   edits.
