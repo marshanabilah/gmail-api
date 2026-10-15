@@ -2,7 +2,9 @@
 
 A personal iPhone expense tracker that imports transaction emails from Gmail, keeps the ledger on the device, and sends uncertain imports to review instead of asking for routine manual entry.
 
-The app is designed for Indonesian rupiah transactions and will support Mandiri, BCA, Jago, and OCTO CIMB as their email formats are added.
+The app is designed for Indonesian rupiah transactions. BCA and Livin' by
+Mandiri are connected to the Gmail Review flow; Jago and OCTO CIMB remain
+parse-only while their import rules are refined.
 
 ## Current state
 
@@ -15,7 +17,8 @@ The project contains a native SwiftUI foundation and a local import core.
 - Google Sign-In for one Gmail account, with Gmail read-only access only
 - Manual 90-day scans of the owner-maintained `Transaction` Gmail label
 - Duplicate protection using Gmail message IDs and transaction fingerprints
-- BCA QRIS email parsing for successful payments, with a deliberate Review flow
+- BCA QRIS payments and Livin' by Mandiri transfers imported through a
+  deliberate Review flow
 - Local merchant rules that suggest categories without auto-approving payments
 - Manual cash and e-wallet entries, custom categories, and light/dark appearance
 
@@ -42,10 +45,13 @@ Gmail, read-only
   → parse bank-specific fields on device
   → reject duplicates
   → suggest a category from local merchant rules when available
-  → send every new BCA payment to Review
+  → send every new BCA payment or Mandiri transfer to Review
   → owner accepts a suggestion, or chooses a category directly
   → save the accepted transaction and update the local merchant rule
 ```
+
+Mandiri receipts are stored as transfers. They appear in Review and activity,
+but they do not count toward confirmed spending totals.
 
 ## Supported message formats
 
@@ -54,7 +60,7 @@ Gmail, read-only
 | BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
 | Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
 | OCTO CIMB | Successful transfer between own CIMB Niaga accounts | Parsed only; not imported in the current Gmail flow |
-| Mandiri | Successful Livin' transfer with recipient, date, time, and amount | Parsed only; not imported in the current Gmail flow |
+| Mandiri | Successful Livin' transfer with recipient, date, time, amount, and reference number | Imported to Review as a transfer; excluded from spending totals |
 
 ## Development
 
@@ -72,7 +78,9 @@ Gmail, read-only
 swift run CoreVerification
 ```
 
-This checks the import policy, duplicate handling, merchant categorization, BCA QRIS parsing, and Jago debit-card parsing with redacted fixtures.
+This checks the import policy, duplicate handling, merchant categorization,
+BCA QRIS parsing, Mandiri transfer parsing, and Jago debit-card parsing with
+redacted fixtures.
 
 ### Run the unit tests
 
@@ -80,8 +88,9 @@ This checks the import policy, duplicate handling, merchant categorization, BCA 
 swift test
 ```
 
-This includes category, Gmail sync, BCA import, duplicate-prevention, and
-merchant-rule tests using synthetic, redacted fixtures.
+This includes category, Gmail sync, BCA and Mandiri import,
+duplicate-prevention, analytics, and merchant-rule tests using synthetic,
+redacted fixtures.
 
 ### Gmail configuration
 

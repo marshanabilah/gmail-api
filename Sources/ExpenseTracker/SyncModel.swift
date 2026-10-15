@@ -70,13 +70,13 @@ final class SyncModel {
         beginMailboxSync()
     }
 
-    func bcaReviewPreview(
+    func bankReviewPreview(
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
         rules: [MerchantRule]
-    ) -> BCAReviewImportResult? {
+    ) -> BankReviewImportResult? {
         guard !mailbox.latestCandidates.isEmpty else { return nil }
-        return BCAReviewImporter().importCandidates(
+        return BankReviewImporter().importCandidates(
             mailbox.latestCandidates,
             existingMessageIDs: existingMessageIDs,
             existingFingerprints: existingFingerprints,
@@ -84,7 +84,7 @@ final class SyncModel {
         )
     }
 
-    func saveBCAReviewImports(_ preview: BCAReviewImportResult, in modelContext: ModelContext) -> Bool {
+    func saveBankReviewImports(_ preview: BankReviewImportResult, in modelContext: ModelContext) -> Bool {
         var records = [TransactionRecord]()
         for imported in preview.imports {
             let draft = imported.draft

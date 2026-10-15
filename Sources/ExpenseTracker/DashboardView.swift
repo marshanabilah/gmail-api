@@ -8,8 +8,8 @@ struct DashboardView: View {
     @Query private var merchantRuleRecords: [MerchantRuleRecord]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showsDisconnectConfirmation = false
-    @State private var bcaImportPreview: BCAReviewImportResult?
-    @State private var bcaImportSummary: String?
+    @State private var bankImportPreview: BankReviewImportResult?
+    @State private var bankImportSummary: String?
     @State private var selectedMonth = SpendingAnalytics.monthStart(for: .now)
     @State private var analyticsDetail: AnalyticsDetail?
     let sync: SyncModel
@@ -103,11 +103,11 @@ struct DashboardView: View {
                             Section("Gmail") {
                                 Text(candidateCountDescription(candidateCount))
                                     .foregroundStyle(.secondary)
-                                Button("Import BCA payments", systemImage: "tray.and.arrow.down") {
-                                    prepareBCAImport()
+                                Button("Import transactions", systemImage: "tray.and.arrow.down") {
+                                    prepareBankImport()
                                 }
-                                if let bcaImportSummary {
-                                    Text(bcaImportSummary)
+                                if let bankImportSummary {
+                                    Text(bankImportSummary)
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
@@ -166,22 +166,22 @@ struct DashboardView: View {
             }
         }
         .confirmationDialog(
-            "Import BCA payments?",
+            "Import bank transactions?",
             isPresented: Binding(
-                get: { bcaImportPreview != nil },
-                set: { if !$0 { bcaImportPreview = nil } }
+                get: { bankImportPreview != nil },
+                set: { if !$0 { bankImportPreview = nil } }
             ),
             titleVisibility: .visible
         ) {
-            if let bcaImportPreview {
-                Button("Import \(bcaImportPreview.imports.count) payments") {
-                    saveBCAImport(bcaImportPreview)
+            if let bankImportPreview {
+                Button("Import \(bankImportPreview.imports.count) \(bankImportPreview.imports.count == 1 ? "transaction" : "transactions")") {
+                    saveBankImport(bankImportPreview)
                 }
             }
-            Button("Cancel", role: .cancel) { bcaImportPreview = nil }
+            Button("Cancel", role: .cancel) { bankImportPreview = nil }
         } message: {
-            if let bcaImportPreview {
-                Text(bcaImportConfirmationMessage(bcaImportPreview))
+            if let bankImportPreview {
+                Text(bankImportConfirmationMessage(bankImportPreview))
             }
         }
     }
@@ -253,21 +253,21 @@ struct DashboardView: View {
         "\(count) eligible \(count == 1 ? "email was" : "emails were") found. They have not been added to the ledger yet."
     }
 
-    private func prepareBCAImport() {
-        let preview = sync.bcaReviewPreview(
+    private func prepareBankImport() {
+        let preview = sync.bankReviewPreview(
             existingMessageIDs: Set(transactions.map(\.sourceMessageID)),
             existingFingerprints: Set(transactions.map(\.fingerprint)),
             rules: merchantRules
         )
         guard let preview else {
-            bcaImportSummary = "Sync Gmail again before preparing transactions for Review."
+            bankImportSummary = "Sync Gmail again before preparing transactions for Review."
             return
         }
         guard !preview.imports.isEmpty else {
-            bcaImportSummary = "No new successful BCA QRIS payments were ready to import. Other emails were left untouched."
+            bankImportSummary = "No new supported BCA or Mandiri transactions were ready to import. Other emails were left untouched."
             return
         }
-        bcaImportPreview = preview
+        bankImportPreview = preview
     }
 
     private var merchantRules: [MerchantRule] {
@@ -276,17 +276,17 @@ struct DashboardView: View {
         }
     }
 
-    private func saveBCAImport(_ preview: BCAReviewImportResult) {
-        if sync.saveBCAReviewImports(preview, in: modelContext) {
-            bcaImportSummary = "Added \(preview.imports.count) BCA \(preview.imports.count == 1 ? "payment" : "payments") to Review."
+    private func saveBankImport(_ preview: BankReviewImportResult) {
+        if sync.saveBankReviewImports(preview, in: modelContext) {
+            bankImportSummary = "Added \(preview.imports.count) \(preview.imports.count == 1 ? "transaction" : "transactions") to Review."
         } else {
-            bcaImportSummary = "The BCA payments were not saved. Your existing ledger was left unchanged."
+            bankImportSummary = "The transactions were not saved. Your existing ledger was left unchanged."
         }
-        bcaImportPreview = nil
+        bankImportPreview = nil
     }
 
-    private func bcaImportConfirmationMessage(_ preview: BCAReviewImportResult) -> String {
-        var details = ["Every payment will start in Review. Saved category rules can suggest a category, but you decide when to accept it."]
+    private func bankImportConfirmationMessage(_ preview: BankReviewImportResult) -> String {
+        var details = ["Every transaction will start in Review. Saved category rules can suggest a category, but you decide when to accept it."]
         if preview.duplicateCount > 0 {
             details.append("\(preview.duplicateCount) duplicate \(preview.duplicateCount == 1 ? "email was" : "emails were") skipped.")
         }

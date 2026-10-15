@@ -131,6 +131,7 @@ let mandiriEmail = BankEmail(
     Date | 2 Oct 2026
     Time | 14:00:45 WIB
     Transfer Amount | Rp 700.338,00
+    Reference No. | 2610021121000000
     """,
     receivedAt: Date(timeIntervalSince1970: 1_700_000_300)
 )
@@ -148,7 +149,7 @@ let mandiriImport = ImportEngine().importDrafts(
     existingFingerprints: [],
     rules: []
 )
-precondition(mandiriImport.first?.status == .needsReview)
+precondition(mandiriImport.first?.status == .ready)
 
 let manualInput = ManualTransactionInput(
     merchant: "Weekend market",

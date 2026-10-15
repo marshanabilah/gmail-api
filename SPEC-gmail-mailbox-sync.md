@@ -10,10 +10,10 @@ already placed under the Gmail label `Transaction`, limited to the previous 90
 calendar days.
 
 The result is a deterministic, in-memory collection of non-Flip transaction
-email candidates for `bca-local-import`. That later module is responsible for
-bank parsing, duplicate checks, categorisation, and Review creation for
-recognized BCA payments. This module does not write to SwiftData or
-add anything to the ledger.
+email candidates for the local Review importer. The BCA and Mandiri import
+modules are responsible for bank parsing, duplicate checks, categorisation,
+and Review creation. This module does not write to SwiftData or add anything
+to the ledger.
 
 The label currently contains transaction notifications from BCA, Jago, and
 Livin' by Mandiri. It may also contain Flip transfer receipts. Flip must be
@@ -41,7 +41,8 @@ it neither creates nor maintains the label, and it does not alter messages.
 - Gmail REST API, using the authorised user's current access token and
   `URLSession`; no backend, cloud database, Apps Script, or additional OAuth
   scope.
-- The existing `BankEmail` value type as the handoff to `bca-local-import`.
+- The existing `BankEmail` value type as the handoff to the local Review
+  importer.
 
 The implementation may use these Gmail endpoints after confirming their
 current request and response formats against the official Gmail API docs:
@@ -81,8 +82,8 @@ SPEC-gmail-auth.md                          -> Existing connection and read-only
 ```
 
 `gmail-mailbox-sync` provides `BankEmail` candidates in memory. The dependent
-`bca-local-import` module owns parser selection, review creation, duplicate
-protection, and SwiftData writes.
+BCA and Mandiri local-import modules own parser selection, Review creation,
+duplicate protection, and SwiftData writes.
 
 ## Code Style
 
@@ -134,9 +135,9 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
 - Test expired authorisation, HTTP failure, malformed MIME, and rate-limit
   responses as non-destructive errors with no partial local writes.
 - After core tests and the simulator build pass, perform one opt-in scan of
-  the real `Transaction` label. Verify the resulting local candidates through
-  the Review screen when `bca-local-import` is connected. Do not use routine
-  UI testing for parser or filtering changes.
+  the real `Transaction` label. Verify recognized BCA and Mandiri candidates
+  through the Review screen. Do not use routine UI testing for parser or
+  filtering changes.
 
 ## Boundaries
 
@@ -150,8 +151,9 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   the local importer.
 - Exclude a confirmed Flip receipt before parser selection.
 - Preserve Gmail message IDs for the downstream local duplicate check.
-- Leave every recognized BCA payment for Review through the downstream
-  importer, even when a local merchant rule suggests its category.
+- Leave every recognized BCA payment and Mandiri transfer in Review through
+  the downstream importer, even when a local merchant rule suggests its
+  category.
 - Return an understandable, retryable state when Gmail is unavailable.
 
 ### Ask First
@@ -202,7 +204,5 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   be handed to the importer, including any future bank format it does not yet
   recognise? This spec assumes yes: unsupported formats stay unsupported and
   cannot become transactions.
-- The existing capability map names the downstream module `bca-local-import`,
-  while the label now contains BCA, Jago, and Livin'. We should decide during
-  that module's spec whether to keep the stable module ID while broadening its
-  parser coverage, or split parser work into a later capability.
+- Jago and OCTO CIMB candidates remain unsupported until their own import
+  modules are specified and approved.

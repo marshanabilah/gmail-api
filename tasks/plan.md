@@ -187,7 +187,7 @@ sign-in verification in Task 6 and the later local-import implementation.
 
 - [x] Unit tests cover the manual scan state without real Gmail
 - [x] No candidate is persisted outside the later `bca-local-import` module
-- [ ] Human approves the downstream import plan before a real mailbox scan
+- [x] Human approves the downstream import plan before a real mailbox scan
 
 ## Risks and Mitigations
 
@@ -206,3 +206,89 @@ sign-in verification in Task 6 and the later local-import implementation.
 - Whether the existing downstream module keeps the stable ID
   `bca-local-import` while supporting BCA, Jago, and Livin', or is split after
   its own approved spec.
+
+---
+
+# Implementation Plan: Livin' by Mandiri Local Import
+
+Module id: `mandiri-local-import`
+
+## Overview
+
+Extend the current BCA-only Review import so the same confirmed Gmail scan can
+stage valid Livin' by Mandiri transfer receipts. Mandiri records remain
+`transferOut`, start in Review, use the existing duplicate and merchant-rule
+behavior, and stay outside confirmed spending totals.
+
+The unfinished live Gmail sign-out and restoration checks remain in the auth
+task list. The user chose to defer those checks; this module does not close or
+change them.
+
+## Architecture Decisions
+
+- Keep `MandiriTransferEmailParser` as a pure core parser and tighten it around
+  the approved English Livin' receipt shape.
+- Introduce a bank-agnostic Review importer that tries BCA and Mandiri parsers
+  in a fixed order. A candidate can produce at most one transaction.
+- Preserve the existing BCA result shape at the app boundary where practical,
+  then rename user-facing BCA-only actions to bank-neutral import language.
+- Reuse the current SwiftData write path. No schema change or new persisted
+  banking field is needed.
+- Keep Flip exclusion in `gmail-mailbox-sync`; the local importer still treats
+  any unsupported lookalike as unsupported.
+
+## Dependency Graph
+
+```text
+Approved Mandiri spec
+        |
+        v
+Strict Mandiri parser and focused tests
+        |
+        v
+Multi-bank Review importer and mixed-candidate tests
+        |
+        v
+SyncModel and Dashboard import flow
+        |
+        v
+README and related spec alignment
+```
+
+## Task List
+
+### Phase: Core parsing
+
+- [x] Task 11: Tighten the Mandiri parser with redacted tests
+- [x] Task 12: Generalize Review import for BCA and Mandiri
+
+### Checkpoint: Core import
+
+- [x] Focused Mandiri and mixed-bank tests pass
+- [x] Full core test suite passes
+
+### Phase: App integration
+
+- [x] Task 13: Connect the multi-bank preview and save flow
+- [x] Task 14: Align README and existing specs
+
+### Checkpoint: Complete
+
+- [x] Simulator build succeeds
+- [x] Import copy describes BCA payments and Mandiri transfers accurately
+- [x] Mandiri transfers appear in Review and remain outside spending totals
+- [x] No real Gmail or sign-out check is required for parser verification
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Generic transfer text matches a non-Livin' email | High | Require the Livin' heading and every approved structured field. |
+| One candidate is parsed twice | High | Stop at the first parser that returns a transaction or ignored result. |
+| BCA behavior regresses during importer generalization | High | Keep all existing BCA tests and add a mixed-bank test before changing the importer. |
+| Mandiri transfer inflates expenses | High | Preserve `transferOut` and verify analytics exclusion with a focused test. |
+| UI copy implies all candidates were imported | Medium | Report imported, duplicate, and untouched counts without exposing email content. |
+
+## Open Questions
+
+- None. Transaction-kind editing remains a separate future capability.

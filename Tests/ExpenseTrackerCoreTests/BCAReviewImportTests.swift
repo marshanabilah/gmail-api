@@ -2,6 +2,65 @@ import XCTest
 @testable import ExpenseTrackerCore
 
 final class BCAReviewImportTests: XCTestCase {
+    func testMixedBCAAndMandiriCandidatesBothEnterReview() {
+        let result = BankReviewImporter().importCandidates(
+            [bcaEmail(id: "bca-mixed"), mandiriImportEmail(id: "mandiri-mixed")],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: []
+        )
+
+        XCTAssertEqual(result.imports.map(\.draft.bankID), ["bca", "mandiri"])
+        XCTAssertEqual(result.imports.map(\.status), [.needsReview, .needsReview])
+        XCTAssertEqual(result.unsupportedCount, 0)
+    }
+
+    func testMandiriMessageIDAndFingerprintDuplicatesAreSkipped() throws {
+        let email = mandiriImportEmail(id: "mandiri-duplicate")
+        let draft = try XCTUnwrap(transactionDraft(from: MandiriTransferEmailParser().parse(email)))
+        let result = BankReviewImporter().importCandidates(
+            [email, mandiriImportEmail(id: "mandiri-second")],
+            existingMessageIDs: ["mandiri-duplicate"],
+            existingFingerprints: [draft.fingerprint],
+            rules: []
+        )
+
+        XCTAssertTrue(result.imports.isEmpty)
+        XCTAssertEqual(result.duplicateCount, 2)
+    }
+
+    func testMandiriMerchantRuleSuggestsCategoryWithoutBypassingReview() {
+        let result = BankReviewImporter().importCandidates(
+            [mandiriImportEmail(id: "mandiri-rule", recipient: "Example Recipient")],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: [MerchantRule(merchantContains: "recipient", category: "Bills")]
+        )
+
+        XCTAssertEqual(result.imports.first?.category, "Bills")
+        XCTAssertEqual(result.imports.first?.status, .needsReview)
+        XCTAssertEqual(result.imports.first?.draft.kind, .transferOut)
+    }
+
+    func testCandidateUnsupportedByBothParsersIsCountedOnce() {
+        let unsupported = BankEmail(
+            messageID: "unknown-1",
+            sender: "alerts@example.test",
+            subject: "Account notice",
+            body: "This message is not a supported transaction receipt.",
+            receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+        )
+        let result = BankReviewImporter().importCandidates(
+            [unsupported],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: []
+        )
+
+        XCTAssertTrue(result.imports.isEmpty)
+        XCTAssertEqual(result.unsupportedCount, 1)
+    }
+
     func testSuccessfulQRISPaymentCreatesNeedsReviewImport() {
         let result = BCAReviewImporter().importCandidates(
             [bcaEmail(id: "bca-1")],
@@ -167,6 +226,33 @@ private func bcaEmail(
         """,
         receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
     )
+}
+
+private func mandiriImportEmail(
+    id: String,
+    recipient: String = "Example Recipient"
+) -> BankEmail {
+    BankEmail(
+        messageID: id,
+        sender: "alerts@example.test",
+        subject: "Transfer notification",
+        body: """
+        Transfer Successful
+        Recipient
+        \(recipient)
+        Bank Mandiri - 0000
+        Date | 2 Oct 2026
+        Time | 14:00:45 WIB
+        Transfer Amount | Rp 700.338,00
+        Reference No. | 2610021121000000
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func transactionDraft(from result: BankEmailParseResult) -> TransactionDraft? {
+    guard case .transaction(let draft) = result else { return nil }
+    return draft
 }
 
 private extension BankEmailParseResult {

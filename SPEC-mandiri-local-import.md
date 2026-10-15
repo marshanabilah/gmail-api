@@ -182,3 +182,10 @@ return .transaction(TransactionDraft(
 
 - None for this slice. Treating selected bank transfers as expenses can be
   specified later as a separate transaction-kind editing feature.
+
+## Implementation Status
+
+Implemented with strict local parsing, shared BCA plus Mandiri Review import,
+duplicate protection, merchant-rule suggestions, and bank-neutral import
+confirmation. Live Gmail sign-out and restoration checks remain deferred and
+are not required to verify this parser.

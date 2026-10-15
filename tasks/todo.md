@@ -30,8 +30,9 @@ decision; no production source changes in this task.
   iOS-independent state machine without requiring a browser or Keychain.
 - [x] Add fake authorization-service implementations used only by tests.
 - [x] Keep token-bearing values out of debug descriptions and UI text.
-- [ ] Add or configure an Xcode unit-test target if the existing Swift package
-  tests cannot exercise the iOS-facing code.
+- [x] Confirm that a separate Xcode unit-test target is not needed: Swift
+  package tests exercise the auth state machine, while the thin Google SDK
+  adapter is covered by the signed simulator integration check.
 
 Acceptance: authentication state can be exercised in tests without a browser,
 Keychain, network request, or live account.
@@ -54,7 +55,7 @@ Verification: unit tests for all persistence paths plus a clean iOS build.
 
 ## Checkpoint A
 
-- [ ] Review the foundation and Keychain behavior against
+- [x] Review the foundation and Keychain behavior against
   `SPEC-gmail-auth.md` before introducing browser authentication.
 
 ## 4. Implement the OAuth coordinator and state machine
@@ -95,7 +96,7 @@ connection and disconnect paths; build succeeds.
 
 ## Checkpoint B
 
-- [ ] Review the completed local behavior before entering real Google Cloud
+- [x] Review the completed local behavior before entering real Google Cloud
   configuration.
 
 ## 6. Configure and verify the real Google callback
@@ -278,3 +279,140 @@ Verification:
   fields, duplicate IDs/fingerprints, merchant rules, and mixed candidates.
 - [x] Full core test suite passes.
 - [x] Signed simulator build succeeds.
+
+---
+
+# Livin' by Mandiri Local Import Task List
+
+Module id: `mandiri-local-import`. The live Gmail sign-out and restoration
+checks above remain deferred and are not dependencies for parser work.
+
+## 11. Tighten the Mandiri parser with redacted tests
+
+**Description:** Specify the approved Livin' email shape in focused unit tests,
+then make the existing parser accept only complete, positive-value transfer
+receipts.
+
+**Acceptance criteria:**
+
+- [x] A complete anonymized receipt yields the expected recipient, Jakarta
+  timestamp, amount, `mandiri` bank ID, and `transferOut` kind.
+- [x] Missing recipient or reference, invalid or zero amount, and a lookalike
+  without the Livin' heading return `unsupported`.
+- [x] Tests contain only synthetic identifiers and values.
+
+**Verification:**
+
+- [x] Focused tests pass: `swift test -j 1 --filter MandiriTransferEmailParserTests`
+- [x] Existing BCA parser and importer tests still pass.
+
+**Dependencies:** Approved `SPEC-mandiri-local-import.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BankEmailParser.swift`
+- `Tests/ExpenseTrackerCoreTests/MandiriTransferEmailParserTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 12. Generalize Review import for BCA and Mandiri
+
+**Description:** Replace the BCA-only parser selection inside the Review
+importer with a deterministic BCA plus Mandiri parser chain while preserving
+duplicate checks, category suggestions, and Review-first status.
+
+**Acceptance criteria:**
+
+- [x] A mixed candidate set imports one valid BCA payment and one valid
+  Mandiri transfer, with unsupported candidates counted once.
+- [x] Message-ID and fingerprint duplicates are skipped across both banks.
+- [x] Merchant rules may suggest a category, but every imported record remains
+  `needsReview`.
+
+**Verification:**
+
+- [x] Focused tests pass: `swift test -j 1 --filter BCAReviewImportTests`
+- [x] Full tests pass: `swift test -j 1`
+
+**Dependencies:** Task 11.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## Checkpoint E: Core import
+
+- [x] Mandiri parser tests pass.
+- [x] Mixed-bank import and duplicate tests pass.
+- [x] All existing core tests pass without a real Gmail account.
+
+## 13. Connect the multi-bank preview and save flow
+
+**Description:** Use the generalized importer from `SyncModel` and replace the
+BCA-only Dashboard action and confirmation with accurate bank-neutral copy.
+The existing SwiftData record shape and explicit confirmation remain intact.
+
+**Acceptance criteria:**
+
+- [x] One import action previews valid BCA and Mandiri candidates from the most
+  recent manual Gmail scan.
+- [x] Confirming saves both bank types to Review through the existing atomic
+  write path.
+- [x] Empty and mixed results explain what happened without displaying raw
+  email content or sensitive banking fields.
+
+**Verification:**
+
+- [x] Full tests pass: `swift test -j 1`
+- [x] Simulator build succeeds with code signing disabled.
+- [x] No manual UI run was needed; core tests and the simulator build verified
+  the flow without reinstalling, signing out, or starting Gmail consent.
+
+**Dependencies:** Checkpoint E.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/SyncModel.swift`
+- `Sources/ExpenseTracker/DashboardView.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 14. Align README and existing specs
+
+**Description:** Update project documentation so supported banks, transfer
+semantics, Review behavior, commands, and deferred auth checks match the code.
+
+**Acceptance criteria:**
+
+- [x] README lists BCA and Mandiri as active Gmail imports and explains that
+  Mandiri transfers do not count as spending.
+- [x] Gmail and BCA specs no longer describe the importer as BCA-only.
+- [x] Completed Mandiri tasks and verification results are reflected in this
+  task list after the checks pass.
+
+**Verification:**
+
+- [x] Documentation search finds no stale claim that Livin' is parse-only.
+- [x] `git diff --check` passes.
+
+**Dependencies:** Task 13.
+
+**Files likely touched:**
+
+- `README.md`
+- `SPEC-bca-local-import.md`
+- `SPEC-gmail-mailbox-sync.md`
+- `SPEC-mandiri-local-import.md`
+
+**Estimated scope:** Medium: 4 files.
+
+## Checkpoint F: Mandiri complete
+
+- [x] All core tests pass.
+- [x] The simulator build succeeds.
+- [x] BCA behavior remains unchanged.
+- [x] Mandiri transfers enter Review and stay outside spending analytics.
+- [x] README and specs match the implementation.

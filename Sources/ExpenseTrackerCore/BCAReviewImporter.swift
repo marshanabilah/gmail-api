@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BCAReviewImportResult: Equatable, Sendable {
+public struct BankReviewImportResult: Equatable, Sendable {
     public let imports: [ImportedTransaction]
     public let duplicateCount: Int
     public let ignoredCount: Int
@@ -19,15 +19,18 @@ public struct BCAReviewImportResult: Equatable, Sendable {
     }
 }
 
-public struct BCAReviewImporter: Sendable {
-    private let parser: BCAEmailParser
+public struct BankReviewImporter: Sendable {
+    private let bcaParser: BCAEmailParser
+    private let mandiriParser: MandiriTransferEmailParser
     private let categorizer: MerchantCategorizer
 
     public init(
-        parser: BCAEmailParser = BCAEmailParser(),
+        bcaParser: BCAEmailParser = BCAEmailParser(),
+        mandiriParser: MandiriTransferEmailParser = MandiriTransferEmailParser(),
         categorizer: MerchantCategorizer = MerchantCategorizer()
     ) {
-        self.parser = parser
+        self.bcaParser = bcaParser
+        self.mandiriParser = mandiriParser
         self.categorizer = categorizer
     }
 
@@ -36,7 +39,7 @@ public struct BCAReviewImporter: Sendable {
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
         rules: [MerchantRule]
-    ) -> BCAReviewImportResult {
+    ) -> BankReviewImportResult {
         var seenMessageIDs = existingMessageIDs
         var seenFingerprints = existingFingerprints
         var imports = [ImportedTransaction]()
@@ -45,7 +48,7 @@ public struct BCAReviewImporter: Sendable {
         var unsupportedCount = 0
 
         for candidate in candidates {
-            switch parser.parse(candidate) {
+            switch parse(candidate) {
             case .ignored:
                 ignoredCount += 1
             case .unsupported:
@@ -70,11 +73,20 @@ public struct BCAReviewImporter: Sendable {
             }
         }
 
-        return BCAReviewImportResult(
+        return BankReviewImportResult(
             imports: imports,
             duplicateCount: duplicateCount,
             ignoredCount: ignoredCount,
             unsupportedCount: unsupportedCount
         )
     }
+
+    private func parse(_ candidate: BankEmail) -> BankEmailParseResult {
+        let bcaResult = bcaParser.parse(candidate)
+        guard case .unsupported = bcaResult else { return bcaResult }
+        return mandiriParser.parse(candidate)
+    }
 }
+
+public typealias BCAReviewImportResult = BankReviewImportResult
+public typealias BCAReviewImporter = BankReviewImporter
