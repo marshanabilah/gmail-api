@@ -9,6 +9,12 @@ struct ReviewView: View {
     @State private var transactionAwaitingCategory: TransactionRecord?
     @State private var transactionAwaitingDiscard: TransactionRecord?
     @State private var categoryUpdateSummary: String?
+    let month: Date?
+    let showAll: () -> Void
+
+    private var displayedTransactions: [TransactionRecord] {
+        transactions.filter { PendingReviewFilter.matches($0.occurredAt, month: month) }
+    }
 
     private var categories: [String] {
         ExpenseCategory.availableNames(savedNames: savedCategories.map(\.name))
@@ -17,10 +23,10 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             List {
-                if transactions.isEmpty {
+                if displayedTransactions.isEmpty {
                     ContentUnavailableView("Nothing to review", systemImage: "checkmark.circle", description: Text("Imports with uncertain details or no merchant rule will appear here."))
                 } else {
-                    ForEach(transactions) { transaction in
+                    ForEach(displayedTransactions) { transaction in
                         Section {
                             TransactionRow(transaction: transaction)
                             if transaction.category != nil {
@@ -62,6 +68,14 @@ struct ReviewView: View {
             }
             .navigationTitle("Review")
             .toolbar {
+                if let month {
+                    ToolbarItem(placement: .principal) {
+                        Text("Showing: \(month.formatted(.dateTime.year().month(.wide)))")
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Show all") { showAll() }
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Match saved categories", systemImage: "arrow.triangle.branch") {
                         applySavedCategories()

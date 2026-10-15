@@ -1051,3 +1051,64 @@ scan.
   local data only.
 - [ ] Debit-card alerts remain visibly provisional and editable.
 - [ ] Full automated verification passes.
+
+---
+
+# Analytics Pending Review Month Drill-down Task List
+
+Module id: `review-month-drilldown`.
+
+## 33. Filter pending transactions by Analytics month
+
+**Description:** Add a pure, Jakarta-aware helper that returns pending Review
+items for an optional selected month, newest first.
+
+**Acceptance criteria:**
+
+- [ ] The selected month includes only `needsReview` transactions in that
+  Jakarta calendar month.
+- [ ] An absent filter returns all pending transactions.
+- [ ] Date ordering remains newest first.
+
+**Verification:**
+
+- [ ] Focused tests fail before implementation, then pass.
+
+**Dependencies:** Approved `SPEC-review-month-drilldown.md`.
+
+## 34. Navigate from Analytics to filtered Review
+
+**Description:** Lift tab/filter state to RootView, make the Analytics pending
+review row navigable, and expose an explicit `Show all` action in Review.
+
+**Acceptance criteria:**
+
+- [ ] Tapping the selected month's pending amount opens the Review tab scoped
+  to that month.
+- [ ] Review visibly identifies the selected month and pending scope.
+- [ ] `Show all` restores the normal all-pending list.
+- [ ] Category selection, acceptance, and discard work unchanged when scoped.
+
+**Dependencies:** Task 33.
+
+## 35. Keep Dashboard focused and verify
+
+**Description:** Remove Dashboard pending-review UI, align documentation, and
+validate the complete navigation flow.
+
+**Acceptance criteria:**
+
+- [ ] Dashboard shows no pending-review amount or count.
+- [ ] README/spec/task record describe Analytics → Review drill-down.
+- [ ] Full tests, CoreVerification, unsigned simulator build, and whitespace
+  check pass.
+- [ ] Optional manual check: select August in Analytics, open its pending
+  review, then use Show all.
+
+**Dependencies:** Task 34.
+
+## Checkpoint M: Analytics Review drill-down complete
+
+- [ ] Analytics figures lead to the matching pending Review records.
+- [ ] Dashboard contains no pending-review summary.
+- [ ] Full automated verification passes.

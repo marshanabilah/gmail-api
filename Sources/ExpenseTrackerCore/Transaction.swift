@@ -65,6 +65,13 @@ public enum TransactionDescription {
     }
 }
 
+public enum PendingReviewFilter {
+    public static func matches(_ occurredAt: Date, month: Date?, calendar: Calendar = .current) -> Bool {
+        guard let month else { return true }
+        return calendar.isDate(occurredAt, equalTo: month, toGranularity: .month)
+    }
+}
+
 public struct ManualTransactionInput: Sendable {
     public let merchant: String
     public let amount: Decimal

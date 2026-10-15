@@ -4,21 +4,29 @@ struct RootView: View {
     @State private var sync = SyncModel()
     @AppStorage("appearancePreference") private var appearancePreference = AppearancePreference.system.rawValue
     @State private var showsAppearanceSettings = false
+    @State private var selectedTab = AppTab.dashboard
+    @State private var reviewMonth: Date?
 
     private var preferredColorScheme: ColorScheme? {
         AppearancePreference(rawValue: appearancePreference)?.colorScheme
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             DashboardView(sync: sync) { showsAppearanceSettings = true }
                 .tabItem { Label("Dashboard", systemImage: "chart.bar") }
+                .tag(AppTab.dashboard)
 
-            TransactionsView()
+            TransactionsView { month in
+                reviewMonth = month
+                selectedTab = .review
+            }
                 .tabItem { Label("Transactions", systemImage: "list.bullet") }
+                .tag(AppTab.transactions)
 
-            ReviewView()
+            ReviewView(month: reviewMonth) { reviewMonth = nil }
                 .tabItem { Label("Review", systemImage: "checklist") }
+                .tag(AppTab.review)
         }
         .tint(.teal)
         .preferredColorScheme(preferredColorScheme)
@@ -43,6 +51,12 @@ struct RootView: View {
             }
         }
     }
+}
+
+private enum AppTab: Hashable {
+    case dashboard
+    case transactions
+    case review
 }
 
 private enum AppearancePreference: String, CaseIterable, Identifiable {

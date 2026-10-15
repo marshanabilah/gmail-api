@@ -8,6 +8,7 @@ struct TransactionsView: View {
     @State private var displayMode: TransactionsDisplayMode = .transactions
     @State private var selectedMonth = SpendingAnalytics.monthStart(for: .now)
     @State private var analyticsDetail: TransactionAnalyticsDetail?
+    let openReview: (Date) -> Void
 
     private var analyticsInputs: [SpendingAnalyticsInput] {
         transactions.map {
@@ -106,8 +107,12 @@ struct TransactionsView: View {
             }
             LabeledContent("Confirmed spending", value: monthlySummary.confirmedSpending, format: .currency(code: "IDR"))
             if monthlySummary.pendingReviewCount > 0 {
-                LabeledContent("Pending review", value: monthlySummary.pendingReviewAmount, format: .currency(code: "IDR"))
-                    .foregroundStyle(.orange)
+                Button {
+                    openReview(selectedMonth)
+                } label: {
+                    LabeledContent("Pending review", value: monthlySummary.pendingReviewAmount, format: .currency(code: "IDR"))
+                }
+                .foregroundStyle(.orange)
                 Text("\(monthlySummary.pendingReviewCount) \(monthlySummary.pendingReviewCount == 1 ? "transaction still needs" : "transactions still need") your confirmation.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)

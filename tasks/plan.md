@@ -774,3 +774,50 @@ Red parser tests + edit-behavior tests
 
 - None. The owner approved importing debit-card alerts with a provisional
   description and adding local description editing.
+
+---
+
+# Implementation Plan: Analytics Pending Review Month Drill-down
+
+Module id: `review-month-drilldown`
+
+## Overview
+
+Keep Dashboard focused on current confirmed spending and Gmail state. Make the
+pending-review amount in Transactions → Analytics act as a month-specific
+drill-down to Review, where the owner sees only that month's pending items
+until choosing `Show all`.
+
+## Architecture Decisions
+
+- Lift the selected tab and optional Review month filter into `RootView` so
+  Analytics can navigate to Review without presentation workarounds.
+- Treat the filter as view state only; it never changes SwiftData records,
+  Gmail state, or analytics totals.
+- Use the existing Jakarta month calendar helper for filtering and preserve
+  Review's descending date sort.
+- Remove Dashboard's pending-review line and explanatory copy completely.
+
+## Proposed Work
+
+1. Add a pure month-filter helper with focused date-boundary tests.
+2. Wire `RootView`, Transactions Analytics, and Review through the optional
+   month filter; make the Analytics pending row a button and provide `Show all`
+   in Review.
+3. Remove Dashboard pending-review UI and align documentation/task records.
+4. Run focused tests, full tests, CoreVerification, an unsigned simulator
+   build, and an optional manual tap-through.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| The selected month does not reach Review | High | Keep tab and filter state in RootView and test the filter separately. |
+| Older pending transactions become inaccessible | High | Always show an explicit `Show all` action. |
+| Review actions break while filtered | Medium | Filter only the displayed collection; reuse every existing action unchanged. |
+| Dashboard repeats Review information | Low | Remove its pending amount/count and retain only confirmed spending. |
+
+## Open Questions
+
+- None. The owner approved Analytics as the entry point and Review as the only
+  pending-review destination.
