@@ -2,9 +2,9 @@
 
 A personal iPhone expense tracker that imports transaction emails from Gmail, keeps the ledger on the device, and sends uncertain imports to review instead of asking for routine manual entry.
 
-The app is designed for Indonesian rupiah transactions. BCA and Livin' by
-Mandiri are connected to the Gmail Review flow; Jago and OCTO CIMB remain
-parse-only while their import rules are refined.
+The app is designed for Indonesian rupiah transactions. BCA, Livin' by
+Mandiri, and supported OCTO CIMB QR purchases are connected to the Gmail
+Review flow; Jago remains parse-only while its import rules are refined.
 
 ## Current state
 
@@ -22,8 +22,8 @@ The project contains a native SwiftUI foundation and a local import core.
 - Duplicate protection using Gmail message IDs and transaction fingerprints
 - A local Review discard action that removes a non-spending item and prevents
   the same Gmail message from being imported again
-- BCA QRIS payments and supported Livin' by Mandiri transactions imported
-  through a deliberate Review flow
+- BCA QRIS payments, supported Livin' by Mandiri transactions, and supported
+  OCTO CIMB QR purchases imported through a deliberate Review flow
 - Local merchant rules that suggest categories without auto-approving payments
 - Manual cash and e-wallet entries, custom categories, transaction deletion, and light/dark appearance
 
@@ -51,7 +51,7 @@ Gmail, read-only
   → parse bank-specific fields on device
   → reject duplicates
   → suggest a category from local merchant rules when available
-  → send every new BCA or Mandiri transaction to Review
+  → send every new BCA, Mandiri, or supported OCTO CIMB transaction to Review
   → owner accepts a suggestion, or chooses a category directly
   → owner may discard an item that does not belong in the ledger
   → save the accepted transaction and update the local merchant rule
@@ -67,7 +67,8 @@ accepted with a category, they count toward confirmed spending totals.
 | --- | --- | --- |
 | BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
 | Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
-| OCTO CIMB | Successful transfer between own CIMB Niaga accounts | Parsed only; not imported in the current Gmail flow |
+| OCTO CIMB | OCTO App Purchase with QR receipt with transaction time, merchant, and total payment | Imported to Review; accepted purchases count as spending |
+| OCTO CIMB | Own-account transfer receipt | Parsed only; not imported in the current Gmail flow |
 | Mandiri | Successful Livin' transfer, payment, or e-money top-up with its required receipt fields | Imported to Review; accepted transfers and e-money top-ups count as spending |
 
 ## Development

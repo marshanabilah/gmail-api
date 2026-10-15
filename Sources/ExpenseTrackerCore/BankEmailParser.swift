@@ -100,6 +100,97 @@ public struct OCTOCIMBEmailParser: BankEmailParsing {
     }
 }
 
+public struct OCTOCIMBQRPurchaseEmailParser: BankEmailParsing {
+    private let dateFormatter: DateFormatter
+
+    public init() {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Jakarta")
+        formatter.dateFormat = "ddMMMyy HH:mm"
+        formatter.isLenient = false
+        dateFormatter = formatter
+    }
+
+    public func parse(_ email: BankEmail) -> BankEmailParseResult {
+        guard email.body.localizedCaseInsensitiveContains("OCTO App transaction") else {
+            return .unsupported
+        }
+
+        let lines = normalizedLines(in: email.body)
+        guard
+            let occurredAt = dateFormatter.date(from: field("Date/Time", in: lines) ?? ""),
+            let transactionID = field("Transaction ID", in: lines),
+            !transactionID.isEmpty,
+            field("Purchase Type", in: lines)?.caseInsensitiveCompare("Purchase with QR") == .orderedSame,
+            let merchant = field("Merchant Name", in: lines),
+            !merchant.isEmpty,
+            let amount = rupiahAmount(from: field("Total Payment", in: lines) ?? ""),
+            amount > 0
+        else {
+            return .unsupported
+        }
+
+        return .transaction(TransactionDraft(
+            sourceMessageID: email.messageID,
+            bankID: "octoCimb",
+            occurredAt: occurredAt,
+            merchant: merchant,
+            amount: amount,
+            kind: .qrisPayment,
+            confidence: 0.99
+        ))
+    }
+
+    private func field(_ label: String, in lines: [String]) -> String? {
+        for (index, line) in lines.enumerated() {
+            let cells = line.split(separator: "|", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if cells.count == 2,
+               cells[0].caseInsensitiveCompare(label) == .orderedSame,
+               !cells[1].isEmpty {
+                return cells[1]
+            }
+
+            let parts = line.split(separator: ":", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if parts.count == 2,
+               parts[0].caseInsensitiveCompare(label) == .orderedSame,
+               !parts[1].isEmpty {
+                return parts[1]
+            }
+
+            let standaloneLabel = line.trimmingCharacters(in: CharacterSet(charactersIn: ":"))
+            if standaloneLabel.caseInsensitiveCompare(label) == .orderedSame {
+                return lines.dropFirst(index + 1).first { !$0.isEmpty && $0 != ":" }
+            }
+        }
+        return nil
+    }
+
+    private func normalizedLines(in body: String) -> [String] {
+        body.components(separatedBy: .newlines).map { line in
+            var normalized = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if normalized.hasPrefix("|") {
+                normalized = normalized.trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return normalized
+        }
+    }
+
+    private func rupiahAmount(from value: String) -> Decimal? {
+        let numeric = value
+            .uppercased()
+            .replacingOccurrences(of: "IDR", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Decimal(string: numeric, locale: Locale(identifier: "en_US_POSIX"))
+    }
+}
+
 public struct MandiriTransferEmailParser: BankEmailParsing {
     private let dateFormatter: DateFormatter
 

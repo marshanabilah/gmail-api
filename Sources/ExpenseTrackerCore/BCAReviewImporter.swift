@@ -24,6 +24,7 @@ public struct BankReviewImporter: Sendable {
     private let mandiriTransferParser: MandiriTransferEmailParser
     private let mandiriPaymentParser: MandiriPaymentEmailParser
     private let mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser
+    private let octoCimbQRPurchaseParser: OCTOCIMBQRPurchaseEmailParser
     private let categorizer: MerchantCategorizer
 
     public init(
@@ -31,12 +32,14 @@ public struct BankReviewImporter: Sendable {
         mandiriTransferParser: MandiriTransferEmailParser = MandiriTransferEmailParser(),
         mandiriPaymentParser: MandiriPaymentEmailParser = MandiriPaymentEmailParser(),
         mandiriEMoneyTopUpParser: MandiriEMoneyTopUpEmailParser = MandiriEMoneyTopUpEmailParser(),
+        octoCimbQRPurchaseParser: OCTOCIMBQRPurchaseEmailParser = OCTOCIMBQRPurchaseEmailParser(),
         categorizer: MerchantCategorizer = MerchantCategorizer()
     ) {
         self.bcaParser = bcaParser
         self.mandiriTransferParser = mandiriTransferParser
         self.mandiriPaymentParser = mandiriPaymentParser
         self.mandiriEMoneyTopUpParser = mandiriEMoneyTopUpParser
+        self.octoCimbQRPurchaseParser = octoCimbQRPurchaseParser
         self.categorizer = categorizer
     }
 
@@ -98,7 +101,8 @@ public struct BankReviewImporter: Sendable {
             bcaParser,
             mandiriTransferParser,
             mandiriPaymentParser,
-            mandiriEMoneyTopUpParser
+            mandiriEMoneyTopUpParser,
+            octoCimbQRPurchaseParser
         ]
 
         for parser in parsers {

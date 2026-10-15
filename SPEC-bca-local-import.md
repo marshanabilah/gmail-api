@@ -7,8 +7,9 @@ Module id: `bca-local-import`
 Turn in-memory Gmail candidates into local transactions on the iPhone. This
 module defines successful BCA QRIS payment handling. The shared Review importer
 also recognizes the supported Livin' by Mandiri receipt formats under
-`SPEC-mandiri-local-import.md`. It stores the normalized transaction fields
-needed by the ledger, not raw email or sensitive bank metadata.
+`SPEC-mandiri-local-import.md` and supported OCTO CIMB QR-purchase receipts
+under `SPEC-octo-cimb-local-import.md`. It stores the normalized transaction
+fields needed by the ledger, not raw email or sensitive bank metadata.
 
 Every recognized BCA payment starts in Review. A local merchant rule can
 suggest a category, but the owner still taps Accept before it reaches the
@@ -16,17 +17,17 @@ ledger. When the owner personally chooses or creates a category, that choice
 is itself the acceptance: the payment moves to the ledger and the app saves or
 updates its local merchant rule.
 
-Jago, OCTO CIMB, and unknown candidates remain unsupported. They do not create
-records. Flip remains excluded upstream by `gmail-mailbox-sync` and must never
-arrive here.
+Jago, unsupported OCTO CIMB formats, and unknown candidates remain
+unsupported. They do not create records. Flip remains excluded upstream by
+`gmail-mailbox-sync` and must never arrive here.
 
 ## User Flow
 
 1. The owner connects one Gmail account and taps Sync Gmail.
 2. `gmail-mailbox-sync` reads the owner-maintained `Transaction` label for
    the last 90 days and returns candidates in memory.
-3. The shared Review importer tries the BCA parser, then the Mandiri receipt
-   parsers defined by `mandiri-local-import`.
+3. The shared Review importer tries the BCA parser, Mandiri receipt parsers,
+   then the supported OCTO CIMB QR-purchase parser.
 4. A valid successful BCA QRIS payment becomes a local transaction with status
    `needsReview`. A matching local merchant rule may supply its suggested
    category.
@@ -81,14 +82,15 @@ The local transaction stores:
 - Run parsing and duplicate detection on the iPhone.
 - Persist only the normalized fields already represented by
   `TransactionRecord`.
-- Route every newly imported BCA or Mandiri transaction to Review.
+- Route every newly imported BCA, Mandiri, or supported OCTO CIMB transaction
+  to Review.
 - Preserve manual transactions, custom categories, and merchant rules.
 - Return counts for imported, duplicate, unsupported, and invalid candidates
   without including raw email text in the interface or logs.
 
 ### Ask First
 
-- Importing Jago, OCTO CIMB, or another bank format.
+- Importing Jago, another OCTO CIMB format, or another bank format.
 - Adding a direct-to-ledger path that bypasses the owner's explicit action.
 - Storing any raw email content, Gmail header, account fragment, or reference
   number.
@@ -119,7 +121,7 @@ The local transaction stores:
 - Applying saved merchant rules fills only matching Review categories; it
   never changes a transaction's Review status.
 - Unsupported candidates produce no local record and do not block recognized
-  BCA or Mandiri candidates in the same scan.
+  BCA, Mandiri, or OCTO CIMB candidates in the same scan.
 - No raw Gmail content or sensitive banking metadata enters SwiftData, UI
   text, debug output, or test fixtures.
 - Import errors leave all pre-existing local records unchanged.

@@ -621,3 +621,76 @@ Source grouping, the Transactions/Analytics switch, category and source
 drill-downs, compact Dashboard, and documentation alignment are implemented.
 Core tests, CoreVerification, and the unsigned simulator build pass. A manual
 Analytics navigation check remains optional.
+
+---
+
+# Implementation Plan: OCTO CIMB QR Purchase Import
+
+Module id: `octo-cimb-local-import`
+
+## Overview
+
+Add one strict OCTO App QR-purchase receipt to the existing local Gmail Review
+flow. The receipt becomes an OCTO CIMB QR payment in Review only after it has
+all approved fields; accepted records then join the existing spending and
+source analytics.
+
+## Architecture Decisions
+
+- Add a dedicated `OCTOCIMBQRPurchaseEmailParser`. Do not register the
+  existing own-account-transfer parser with `BankReviewImporter`, because that
+  would broaden imports beyond the approved QR-purchase scope.
+- The parser requires the transaction-summary heading, transaction ID, QR
+  purchase type, merchant, Jakarta time, and positive total payment. The ID
+  validates receipt completeness but is not persisted.
+- Register the QR parser after BCA and Mandiri parsers. The fixed chain still
+  stops after the first recognized or ignored result, preserving exactly one
+  result per Gmail message.
+- Extend source-name mapping with `octoCimb` → `OCTO CIMB`; no SwiftData schema
+  change is needed.
+
+## Dependency Graph
+
+```text
+Strict QR-purchase parser tests
+        |
+        v
+Pure OCTO CIMB QR parser
+        |
+        v
+Importer registration + source analytics mapping
+        |
+        v
+Documentation and full verification
+```
+
+## Proposed Work
+
+1. Add failing redacted tests for complete and malformed OCTO CIMB QR-purchase
+   receipts, then implement the dedicated pure parser.
+2. Register only that parser in `BankReviewImporter`, add mixed-scan and
+   duplicate coverage, and add the `OCTO CIMB` source display mapping.
+3. Update README and import specs so active support, strict boundaries, and
+   parse-only own transfers match the code.
+4. Run focused tests, the full suite, CoreVerification, an unsigned simulator
+   build, and optionally one manual Gmail import after automated checks pass.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Own-account transfers enter Review | High | Use a separate QR parser and test that transfer receipts remain unsupported by the Review importer. |
+| Receipt metadata reaches local storage | High | Construct drafts from merchant, time, amount, kind, bank ID, and Gmail ID only; add fixture assertions. |
+| OCR-like HTML line changes break parsing | Medium | Test the normalized labeled receipt text emitted by the Gmail body decoder and require every field. |
+| OCTO CIMB total is missing from source analytics | Medium | Add source grouping coverage for `octoCimb` and map it to one stable display label. |
+
+## Open Questions
+
+- None. The owner approved only OCTO CIMB QR-purchase receipts for this module.
+
+## Implementation Status
+
+The dedicated QR-purchase parser is registered for Review, own-account
+transfers remain parse-only, and `octoCimb` maps to `OCTO CIMB` in analytics.
+Core tests, CoreVerification, and the unsigned simulator build pass. A live
+labeled-email import remains optional.

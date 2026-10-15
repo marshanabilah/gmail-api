@@ -10,15 +10,16 @@ already placed under the Gmail label `Transaction`, limited to the previous 90
 calendar days.
 
 The result is a deterministic, in-memory collection of non-Flip transaction
-email candidates for the local Review importer. The BCA and Mandiri import
-modules are responsible for bank parsing, duplicate checks, categorisation,
-and Review creation. This module does not write to SwiftData or add anything
-to the ledger.
+email candidates for the local Review importer. The BCA, Mandiri, and OCTO
+CIMB import modules are responsible for bank parsing, duplicate checks,
+categorisation, and Review creation. This module does not write to SwiftData
+or add anything to the ledger.
 
-The label currently contains transaction notifications from BCA, Jago, and
-Livin' by Mandiri. It may also contain Flip transfer receipts. Flip must be
-excluded before it reaches a bank parser. The app must never modify Gmail:
-it neither creates nor maintains the label, and it does not alter messages.
+The label currently contains transaction notifications from BCA, Jago, Livin'
+by Mandiri, and OCTO CIMB. It may also contain Flip transfer receipts. Flip
+must be excluded before it reaches a bank parser. The app must never modify
+Gmail: it neither creates nor maintains the label, and it does not alter
+messages.
 
 ### Acceptance criteria
 
@@ -221,5 +222,6 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   be handed to the importer, including any future bank format it does not yet
   recognise? This spec assumes yes: unsupported formats stay unsupported and
   cannot become transactions.
-- Jago and OCTO CIMB candidates remain unsupported until their own import
-  modules are specified and approved.
+- Jago candidates remain unsupported until their own import module is
+  specified and approved. Only OCTO CIMB QR-purchase receipts are supported;
+  other OCTO CIMB formats remain unsupported.

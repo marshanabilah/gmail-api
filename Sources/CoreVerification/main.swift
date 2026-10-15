@@ -111,6 +111,33 @@ guard case .transaction(let cimbTransaction) = OCTOCIMBEmailParser().parse(cimbE
 precondition(cimbTransaction.kind == .transferOut)
 precondition(cimbTransaction.amount == 100_000)
 
+let octoQRPurchaseEmail = BankEmail(
+    messageID: "octo-qr-message-1",
+    sender: "alerts@example.test",
+    subject: "OCTO App transaction",
+    body: """
+    Below is the summary of OCTO App transaction that you have performed:
+    Date/Time:
+    15Oct26 12:35
+    Transaction ID:
+    transaction-123
+    Purchase Type:
+    Purchase with QR
+    Merchant Name:
+    Example Coffee Shop
+    Total Payment:
+    IDR 55,200.00
+    """,
+    receivedAt: Date(timeIntervalSince1970: 1_700_000_250)
+)
+
+guard case .transaction(let octoQRPurchase) = OCTOCIMBQRPurchaseEmailParser().parse(octoQRPurchaseEmail) else {
+    preconditionFailure("Expected the OCTO CIMB QR purchase sample to parse")
+}
+precondition(octoQRPurchase.kind == .qrisPayment)
+precondition(octoQRPurchase.merchant == "Example Coffee Shop")
+precondition(octoQRPurchase.amount == 55_200)
+
 let transferImport = ImportEngine().importDrafts(
     [cimbTransaction],
     existingMessageIDs: [],

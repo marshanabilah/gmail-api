@@ -15,6 +15,21 @@ final class BCAReviewImportTests: XCTestCase {
         XCTAssertEqual(result.unsupportedCount, 0)
     }
 
+    func testOCTOCIMBQRPurchaseEntersReviewButOwnTransferRemainsUnsupported() {
+        let result = BankReviewImporter().importCandidates(
+            [octoQRPurchaseEmail(), octoOwnTransferEmail()],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: [MerchantRule(merchantContains: "coffee", category: "Food & drink")]
+        )
+
+        XCTAssertEqual(result.imports.map(\.draft.bankID), ["octoCimb"])
+        XCTAssertEqual(result.imports.map(\.draft.kind), [.qrisPayment])
+        XCTAssertEqual(result.imports.map(\.category), ["Food & drink"])
+        XCTAssertEqual(result.imports.map(\.status), [.needsReview])
+        XCTAssertEqual(result.unsupportedCount, 1)
+    }
+
     func testMandiriMessageIDAndFingerprintDuplicatesAreSkipped() throws {
         let email = mandiriImportEmail(id: "mandiri-duplicate")
         let draft = try XCTUnwrap(transactionDraft(from: MandiriTransferEmailParser().parse(email)))
@@ -316,6 +331,48 @@ private func mandiriTopUpImportEmail() -> BankEmail {
         Time | 20:36:39 WIB
         Top-up Amount | Rp 50.000,00
         Reference Number | 7026101220363000004
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func octoQRPurchaseEmail() -> BankEmail {
+    BankEmail(
+        messageID: "octo-qr-import",
+        sender: "alerts@example.test",
+        subject: "OCTO App transaction",
+        body: """
+        Below is the summary of OCTO App transaction that you have performed:
+        Date/Time:
+        15Oct26 12:35
+        Transaction ID:
+        transaction-123
+        Purchase Type:
+        Purchase with QR
+        Merchant Name:
+        Example Coffee Shop
+        Total Payment:
+        IDR 55,200.00
+        """,
+        receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
+    )
+}
+
+private func octoOwnTransferEmail() -> BankEmail {
+    BankEmail(
+        messageID: "octo-own-transfer",
+        sender: "alerts@example.test",
+        subject: "OCTO App transaction",
+        body: """
+        Below is the summary of OCTO App transaction that you have performed:
+        Date/Time:
+        04 October 2026 06:25:00
+        Transaction Type:
+        Transfer to Own CIMB Niaga Account
+        Transfer Amount:
+        IDR 100,000.00
+        Status:
+        SUCCESS
         """,
         receivedAt: Date(timeIntervalSince1970: 1_728_000_000)
     )

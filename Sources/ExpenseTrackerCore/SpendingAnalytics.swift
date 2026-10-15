@@ -137,6 +137,7 @@ public enum SpendingAnalytics {
         case "mandiri": "Mandiri"
         case "cash": "Cash"
         case "ewallet", "e-wallet": "E-wallet"
+        case "octocimb": "OCTO CIMB"
         case "": "Other"
         default:
             normalizedSource.prefix(1).uppercased() + normalizedSource.dropFirst()

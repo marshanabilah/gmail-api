@@ -108,6 +108,10 @@ final class SpendingAnalyticsTests: XCTestCase {
         XCTAssertEqual(SpendingAnalytics.categoryName(for: "  Food & drink  "), "Food & drink")
     }
 
+    func testSourceNameUsesOCTOCIMBDisplayLabel() {
+        XCTAssertEqual(SpendingAnalytics.sourceName(for: "octoCimb"), "OCTO CIMB")
+    }
+
     private func input(
         date: Date,
         amount: Decimal,

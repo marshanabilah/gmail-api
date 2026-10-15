@@ -604,7 +604,7 @@ the README and specs to list the newly supported Mandiri receipts accurately.
   simulator build pass.
 - [x] New payment and top-up items begin in Review and count as spending only
   after acceptance.
-- [ ] Optional manual Gmail sync confirms labeled Mandiri messages are visible
+- [x] Optional manual Gmail sync confirms labeled Mandiri messages are visible
   in Review without reconnecting or reinstalling the app.
 
 ---
@@ -687,7 +687,7 @@ Review, Activity, and analytics.
 **Verification:**
 
 - [x] Unsigned simulator build succeeds.
-- [ ] Manual simulator check: discard one Review item, confirm it disappears,
+- [x] Manual simulator check: discard one Review item, confirm it disappears,
   and verify accepted or other pending items remain.
 
 **Dependencies:** Task 21.
@@ -807,3 +807,104 @@ activity. Align public documentation with the new navigation.
 - [x] The full test suite, CoreVerification, and unsigned simulator build pass.
 - [ ] Optional manual check: switch to Analytics, open one category and one
   source, then return to the ledger without starting a Gmail sync.
+
+---
+
+# OCTO CIMB QR Purchase Import Task List
+
+Module id: `octo-cimb-local-import`.
+
+## 26. Parse strict OCTO CIMB QR-purchase receipts
+
+**Description:** Add failing redacted tests for the approved OCTO App receipt,
+then implement a dedicated QR-purchase parser without altering the existing
+own-transfer parser's parse-only behavior.
+
+**Acceptance criteria:**
+
+- [x] A complete receipt yields bank ID `octoCimb`, `qrisPayment`, merchant,
+  Jakarta timestamp, positive total payment, and high confidence.
+- [x] Missing transaction ID, merchant, payment, a valid timestamp, or the QR
+  purchase type yields `unsupported`.
+- [x] The draft does not use or expose transaction IDs, account fragments,
+  fees, or Point Xtra data.
+
+**Verification:**
+
+- [x] Focused tests fail before implementation, then pass:
+  `swift test -j 1 --filter OCTOCIMBQRPurchaseEmailParserTests`
+
+**Dependencies:** Approved `SPEC-octo-cimb-local-import.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BankEmailParser.swift`
+- `Tests/ExpenseTrackerCoreTests/OCTOCIMBQRPurchaseEmailParserTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 27. Route QR purchases to Review and analytics
+
+**Description:** Register only the OCTO CIMB QR-purchase parser with the
+Review importer, retain duplicate and merchant-rule behavior, and map the
+source to `OCTO CIMB` for analytics.
+
+**Acceptance criteria:**
+
+- [x] A valid OCTO CIMB QR purchase enters Review exactly once in a mixed scan.
+- [x] An OCTO own-transfer receipt does not enter Review.
+- [x] `octoCimb` displays as `OCTO CIMB` in source totals after acceptance.
+
+**Verification:**
+
+- [x] Focused importer and analytics tests pass:
+  `swift test -j 1 --filter BCAReviewImportTests`
+  and `swift test -j 1 --filter SpendingAnalyticsTests`
+
+**Dependencies:** Task 26.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Sources/ExpenseTrackerCore/SpendingAnalytics.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+- `Tests/ExpenseTrackerCoreTests/SpendingAnalyticsTests.swift`
+
+**Estimated scope:** Medium: 4 files.
+
+## 28. Align documentation and verify the full module
+
+**Description:** Update active-import documentation and validate the complete
+module without requiring a real Gmail scan.
+
+**Acceptance criteria:**
+
+- [x] README lists OCTO CIMB QR purchases as imported to Review and keeps
+  own-account transfers parse-only.
+- [x] Existing import specs name OCTO CIMB as supported only for the approved
+  QR-purchase receipt.
+- [x] The OCTO CIMB spec reflects final implementation status.
+
+**Verification:**
+
+- [x] Full suite and `CoreVerification` pass.
+- [x] Unsigned simulator build and `git diff --check` pass.
+- [ ] Optional manual check: one labeled OCTO CIMB QR receipt reaches Review
+  without reconnecting or reinstalling.
+
+**Dependencies:** Task 27.
+
+**Files likely touched:**
+
+- `README.md`
+- `SPEC-bca-local-import.md`
+- `SPEC-gmail-mailbox-sync.md`
+- `SPEC-octo-cimb-local-import.md`
+
+**Estimated scope:** Medium: 4 files.
+
+## Checkpoint K: OCTO CIMB QR purchase complete
+
+- [x] QR purchases reach Review; own transfers do not.
+- [x] Accepted OCTO CIMB payments appear under the OCTO CIMB analytics source.
+- [x] Full automated verification passes.
