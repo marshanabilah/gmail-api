@@ -91,11 +91,15 @@ is the only permitted fallback.
 
 The current app can edit a transaction's category but cannot yet edit its
 visible description. This work adds one local description field to the
-existing transaction editor, available for any saved transaction, including a
-Jago debit-card alert.
+existing transaction editor and makes it available directly from Review for
+every pending imported transaction before acceptance. Jago debit-card alerts
+are one important use case, not a special case.
 
 - The editor initially shows the stored visible description (the `merchant`
   field in the current local model).
+- Every Review item has an `Edit description` action. Saving a valid edit
+  keeps the item in Review; the owner can then choose a category, accept, or
+  discard it without visiting Transactions first.
 - Saving requires a nonblank trimmed value and updates only that local
   transaction; it never changes Gmail.
 - The owner may then choose whether to create or update a merchant category
@@ -163,6 +167,8 @@ guard isSupportedStructuredJagoReceipt(lines), let merchant, let occurredAt,
 - Cover local description edits: blank input is rejected; a valid edit changes
   only the chosen record; and merchant-rule creation remains an explicit
   choice.
+- Cover Review description edits: saving does not accept an item or create a
+  merchant rule; category selection and discard remain available afterward.
 - Run full tests, CoreVerification, and an unsigned simulator build. A real
   Gmail scan remains optional until automated verification passes.
 

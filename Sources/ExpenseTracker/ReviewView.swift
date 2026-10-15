@@ -8,12 +8,17 @@ struct ReviewView: View {
     @Query private var merchantRules: [MerchantRuleRecord]
     @State private var transactionAwaitingCategory: TransactionRecord?
     @State private var transactionAwaitingDiscard: TransactionRecord?
+    @State private var transactionEditingDescription: TransactionRecord?
     @State private var categoryUpdateSummary: String?
     let month: Date?
-    let showAll: () -> Void
+    let selectMonth: (Date?) -> Void
 
     private var displayedTransactions: [TransactionRecord] {
         transactions.filter { PendingReviewFilter.matches($0.occurredAt, month: month) }
+    }
+
+    private var availableMonths: [Date] {
+        Array(Set(transactions.map { SpendingAnalytics.monthStart(for: $0.occurredAt) })).sorted(by: >)
     }
 
     private var categories: [String] {
@@ -23,12 +28,26 @@ struct ReviewView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker("Filter", selection: Binding(get: { month }, set: selectMonth)) {
+                        Text("All pending review").tag(Date?.none)
+                        ForEach(availableMonths, id: \.self) { option in
+                            Text(option.formatted(.dateTime.year().month(.wide))).tag(Date?.some(option))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
                 if displayedTransactions.isEmpty {
                     ContentUnavailableView("Nothing to review", systemImage: "checkmark.circle", description: Text("Imports with uncertain details or no merchant rule will appear here."))
                 } else {
                     ForEach(displayedTransactions) { transaction in
                         Section {
                             TransactionRow(transaction: transaction)
+                            Button {
+                                transactionEditingDescription = transaction
+                            } label: {
+                                Label("Edit description", systemImage: "pencil")
+                            }
                             if transaction.category != nil {
                                 Button {
                                     accept(transaction)
@@ -68,14 +87,6 @@ struct ReviewView: View {
             }
             .navigationTitle("Review")
             .toolbar {
-                if let month {
-                    ToolbarItem(placement: .principal) {
-                        Text("Showing: \(month.formatted(.dateTime.year().month(.wide)))")
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Show all") { showAll() }
-                    }
-                }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Match saved categories", systemImage: "arrow.triangle.branch") {
                         applySavedCategories()
@@ -99,6 +110,9 @@ struct ReviewView: View {
             NewCategoryView(existingNames: categories) { newCategory in
                 chooseCategory(transaction, as: newCategory)
             }
+        }
+        .sheet(item: $transactionEditingDescription) { transaction in
+            ReviewDescriptionEditor(transaction: transaction)
         }
         .confirmationDialog(
             "Discard this transaction?",
@@ -179,5 +193,54 @@ struct ReviewView: View {
         categoryUpdateSummary = updatedCount == 1
             ? "Matched 1 item. Tap Accept when it looks right."
             : "Matched \(updatedCount) items. Tap Accept when they look right."
+    }
+}
+
+private struct ReviewDescriptionEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let transaction: TransactionRecord
+    @State private var description: String
+    @State private var validationMessage: String?
+
+    init(transaction: TransactionRecord) {
+        self.transaction = transaction
+        _description = State(initialValue: transaction.merchant)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("Description", text: $description)
+                    .textContentType(.none)
+                if let validationMessage {
+                    Text(validationMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+            .navigationTitle("Edit description")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard let normalized = TransactionDescription.normalized(description) else {
+            validationMessage = "Add a description so you can recognize this transaction later."
+            return
+        }
+        transaction.merchant = normalized
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            validationMessage = "Could not save the description. Try again."
+        }
     }
 }

@@ -12,6 +12,7 @@ struct DashboardView: View {
     @State private var bankImportPreview: BankReviewImportResult?
     @State private var bankImportSummary: String?
     let sync: SyncModel
+    let openReview: () -> Void
     let openSettings: () -> Void
 
     private var analyticsInputs: [SpendingAnalyticsInput] {
@@ -47,8 +48,11 @@ struct DashboardView: View {
                         Section("Spending") {
                             LabeledContent("This month", value: currentMonthSummary.confirmedSpending, format: .currency(code: "IDR"))
                             if currentMonthSummary.pendingReviewCount > 0 {
-                                LabeledContent("Pending review", value: currentMonthSummary.pendingReviewAmount, format: .currency(code: "IDR"))
-                                    .foregroundStyle(.orange)
+                                Button(action: openReview) {
+                                    LabeledContent("Pending review", value: currentMonthSummary.pendingReviewAmount, format: .currency(code: "IDR"))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.orange)
                                 Text("\(currentMonthSummary.pendingReviewCount) \(currentMonthSummary.pendingReviewCount == 1 ? "transaction still needs" : "transactions still need") your confirmation.")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)

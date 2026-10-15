@@ -1112,3 +1112,27 @@ validate the complete navigation flow.
 - [ ] Analytics figures lead to the matching pending Review records.
 - [ ] Dashboard contains no pending-review summary.
 - [ ] Full automated verification passes.
+
+---
+
+# Review Description Editing Task List
+
+Module id: `review-description-editing`.
+
+## 36. Edit descriptions before accepting a Review item
+
+**Description:** Add a local description editor to every pending Review item.
+
+**Acceptance criteria:**
+
+- [ ] BCA, Mandiri, OCTO CIMB, Jago, and future pending imports expose `Edit description`.
+- [ ] Blank descriptions are rejected and a valid edit stays in Review.
+- [ ] Saving changes neither Gmail, status, category, source ID, amount, kind,
+  date, fingerprint, nor merchant rules.
+- [ ] Category, accept, discard, and Review month filtering still work.
+
+**Verification:**
+
+- [ ] Full tests and unsigned simulator build pass.
+- [ ] Optional manual check: rename one pending BCA or Mandiri item, then
+  categorize and accept it from Review.

@@ -13,7 +13,10 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView(sync: sync) { showsAppearanceSettings = true }
+            DashboardView(sync: sync, openReview: {
+                reviewMonth = SpendingAnalytics.monthStart(for: .now)
+                selectedTab = .review
+            }) { showsAppearanceSettings = true }
                 .tabItem { Label("Dashboard", systemImage: "chart.bar") }
                 .tag(AppTab.dashboard)
 
@@ -24,7 +27,7 @@ struct RootView: View {
                 .tabItem { Label("Transactions", systemImage: "list.bullet") }
                 .tag(AppTab.transactions)
 
-            ReviewView(month: reviewMonth) { reviewMonth = nil }
+            ReviewView(month: reviewMonth, selectMonth: { reviewMonth = $0 })
                 .tabItem { Label("Review", systemImage: "checklist") }
                 .tag(AppTab.review)
         }

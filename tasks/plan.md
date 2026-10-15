@@ -821,3 +821,27 @@ until choosing `Show all`.
 
 - None. The owner approved Analytics as the entry point and Review as the only
   pending-review destination.
+
+---
+
+# Implementation Plan: Edit Pending Review Descriptions
+
+Module id: `review-description-editing`
+
+## Overview
+
+Allow every pending imported transaction—BCA, Mandiri, OCTO CIMB, Jago, and
+future sources—to have its local description edited before acceptance. The
+edit remains in Review and never changes Gmail or creates a merchant rule.
+
+## Proposed Work
+
+1. Add a focused Review description sheet using the existing shared
+   normalization rule.
+2. Keep Review status and category unchanged on save; preserve accept,
+   category, discard, and month-filter behavior.
+3. Add focused coverage for normalization and run the full test/build checks.
+
+## Open Questions
+
+- None. The edit applies to every pending imported transaction.
