@@ -52,8 +52,8 @@ Gmail, read-only
   → save the accepted transaction and update the local merchant rule
 ```
 
-Mandiri receipts are stored as transfers. They appear in Review and activity,
-but they do not count toward confirmed spending totals.
+Mandiri receipts are stored as transfers. They appear in Review and activity;
+once accepted with a category, they count toward confirmed spending totals.
 
 ## Supported message formats
 
@@ -62,7 +62,7 @@ but they do not count toward confirmed spending totals.
 | BCA | Successful QRIS payment email with transaction date, merchant, and total payment | Imported to Review; a local rule can suggest its category |
 | Jago | Debit-card alert containing only an amount | Parsed only; not imported in the current Gmail flow |
 | OCTO CIMB | Successful transfer between own CIMB Niaga accounts | Parsed only; not imported in the current Gmail flow |
-| Mandiri | Successful Livin' transfer with recipient, date, time, amount, and reference number | Imported to Review as a transfer; excluded from spending totals |
+| Mandiri | Successful Livin' transfer with recipient, date, time, amount, and reference number | Imported to Review as a transfer; counts as spending after acceptance |
 
 ## Development
 

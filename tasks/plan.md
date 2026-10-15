@@ -218,7 +218,7 @@ Module id: `mandiri-local-import`
 Extend the current BCA-only Review import so the same confirmed Gmail scan can
 stage valid Livin' by Mandiri transfer receipts. Mandiri records remain
 `transferOut`, start in Review, use the existing duplicate and merchant-rule
-behavior, and stay outside confirmed spending totals.
+behavior, and count toward confirmed spending only after acceptance.
 
 The unfinished live Gmail sign-out and restoration checks remain in the auth
 task list. The user chose to defer those checks; this module does not close or
@@ -276,7 +276,8 @@ README and related spec alignment
 
 - [x] Simulator build succeeds
 - [x] Import copy describes BCA payments and Mandiri transfers accurately
-- [x] Mandiri transfers appear in Review and remain outside spending totals
+- [x] Mandiri transfers appear in Review and count toward spending only after
+  acceptance
 - [x] No real Gmail or sign-out check is required for parser verification
 
 ## Risks and Mitigations
@@ -286,9 +287,74 @@ README and related spec alignment
 | Generic transfer text matches a non-Livin' email | High | Require the Livin' heading and every approved structured field. |
 | One candidate is parsed twice | High | Stop at the first parser that returns a transaction or ignored result. |
 | BCA behavior regresses during importer generalization | High | Keep all existing BCA tests and add a mixed-bank test before changing the importer. |
-| Mandiri transfer inflates expenses | High | Preserve `transferOut` and verify analytics exclusion with a focused test. |
+| Pending Mandiri transfer inflates expenses | High | Preserve Review status and verify only accepted transfers count with a focused test. |
 | UI copy implies all candidates were imported | Medium | Report imported, duplicate, and untouched counts without exposing email content. |
 
 ## Open Questions
 
 - None. Transaction-kind editing remains a separate future capability.
+
+---
+
+# Implementation Plan: Mandiri Transfer Spending Policy
+
+Module id: `mandiri-local-import`
+
+## Overview
+
+Change the approved analytics policy so an accepted Mandiri `transferOut`
+record counts as spending. The transfer stays in Review until the owner chooses
+or confirms a category. It does not affect spending while its status is
+`needsReview`.
+
+## Architecture Decisions
+
+- Keep `transferOut` as the stored transaction kind. The kind records the bank
+  event accurately; analytics decides whether the accepted kind is spending.
+- Change only the analytics expense predicate. This makes the policy apply to
+  accepted Mandiri transfers without changing parser, duplicate, Gmail, or
+  SwiftData behavior.
+- Do not infer account moves from recipient names, banks, or text. Every
+  accepted outgoing transfer counts under the approved personal-ledger policy.
+- Keep all existing non-expense kinds, including `transferIn`, cash withdrawal,
+  refund, and unknown, out of spending totals.
+
+## Dependency Graph
+
+```text
+Approved transfer spending policy
+        |
+        v
+Analytics predicate and regression tests
+        |
+        v
+Dashboard and category-detail verification
+        |
+        v
+README, specs, and task-record alignment
+```
+
+## Proposed Work
+
+1. Add failing analytics tests proving an accepted `transferOut` contributes to
+   monthly spending and its chosen category, while a Review transfer does not.
+2. Change the shared expense predicate and verify category details inherit the
+   result through the existing analytics model.
+3. Update user-facing documentation and the completed Mandiri plan language so
+   it no longer says accepted transfers are excluded from spending.
+4. Run focused analytics tests, the complete Swift test suite, the core
+   verification executable, and the iOS simulator build.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| A pending Review transfer inflates the dashboard | High | Test that only `ready` transfer records count. |
+| Other non-expense kinds begin counting accidentally | High | Preserve and test their exclusions. |
+| Documentation contradicts the analytics result | Medium | Search and update all Mandiri spending statements before delivery. |
+
+## Open Questions
+
+- None for this implementation. A future account-move exclusion must be
+  specified separately because the current email fields are not reliable enough
+  to infer it.

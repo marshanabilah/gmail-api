@@ -25,10 +25,11 @@ final class SpendingAnalyticsTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(summary.confirmedSpending, 63_000)
+        XCTAssertEqual(summary.confirmedSpending, 163_000)
         XCTAssertEqual(summary.pendingReviewAmount, 10_000)
         XCTAssertEqual(summary.pendingReviewCount, 1)
         XCTAssertEqual(summary.categories, [
+            SpendingCategoryTotal(category: "Bills", amount: 100_000),
             SpendingCategoryTotal(category: "Food & drink", amount: 38_000),
             SpendingCategoryTotal(category: "Transport", amount: 25_000),
         ])
@@ -60,11 +61,19 @@ final class SpendingAnalyticsTests: XCTestCase {
         )
     }
 
-    func testConfirmedExpenseRuleExcludesReviewItemsAndTransfersFromCategoryDetails() {
+    func testConfirmedExpenseRuleCountsAcceptedTransfersButExcludesReviewItems() {
         XCTAssertTrue(SpendingAnalytics.isConfirmedExpense(kind: .qrisPayment, status: .ready))
         XCTAssertTrue(SpendingAnalytics.isConfirmedExpense(kind: .manualExpense, status: .ready))
+        XCTAssertTrue(SpendingAnalytics.isConfirmedExpense(kind: .transferOut, status: .ready))
         XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .qrisPayment, status: .needsReview))
-        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .transferOut, status: .ready))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .transferOut, status: .needsReview))
+    }
+
+    func testConfirmedExpenseRuleExcludesOtherNonExpenseKinds() {
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .transferIn, status: .ready))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .cashWithdrawal, status: .ready))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .refund, status: .ready))
+        XCTAssertFalse(SpendingAnalytics.isConfirmedExpense(kind: .unknown, status: .ready))
     }
 
     func testCategoryNameUsesUncategorizedOnlyForMissingOrBlankStoredValues() {

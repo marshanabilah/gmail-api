@@ -9,10 +9,15 @@ transfer receipt can become a normalized local transaction on the iPhone. The
 app reads only candidates already returned by `gmail-mailbox-sync`, parses the
 known English email format, and sends every new Mandiri transfer to Review.
 
-Mandiri transfers remain `transferOut` records. They can appear in activity and
-can be categorized, but they do not contribute to confirmed spending totals.
-This prevents account moves and person-to-person transfers from inflating the
-expense dashboard. Changing a transfer into an expense is outside this module.
+Mandiri transfers remain `transferOut` records so the source activity stays
+truthful. Once the owner accepts one in Review, it contributes to confirmed
+spending totals and the category selected by the owner.
+
+Policy assumption for this personal ledger: every accepted outgoing Mandiri
+transfer is an expense. The current receipt does not reliably distinguish an
+expense from a move between the owner's accounts, so the first version does
+not try to infer that distinction. Review remains the owner's safeguard before
+an amount affects analytics.
 
 The app stores only normalized transaction fields. It does not store the raw
 email, recipient account number, source account fragment, reference number, or
@@ -126,7 +131,7 @@ return .transaction(TransactionDraft(
 - Cover a mixed scan containing valid BCA, valid Mandiri, unsupported, and
   Flip-excluded candidates.
 - Prove that imported Mandiri records start in Review and remain
-  `transferOut`, so spending analytics exclude them.
+  `transferOut`; they count as spending only after the owner accepts them.
 - Run the full core suite and simulator build. Do not require a real Gmail scan
   for parser verification.
 
@@ -137,16 +142,18 @@ return .transaction(TransactionDraft(
 - Parse locally on the iPhone.
 - Use the existing one-account, read-only, manually triggered Gmail flow.
 - Route recognized Mandiri transfers to Review.
-- Keep Mandiri transfers out of confirmed spending totals.
+- Count accepted Mandiri `transferOut` records in confirmed spending and their
+  selected category total.
 - Preserve the current 90-day window, exact `Transaction` label, and Flip
   exclusion.
 - Persist only fields already represented by `TransactionRecord`.
 
 ### Ask First
 
-- Treating a Mandiri transfer as an expense.
 - Adding transaction-kind editing or automatic transfer detection based on a
   recipient name.
+- Excluding selected Mandiri recipients or account moves from spending after
+  this initial policy ships.
 - Supporting a different Mandiri email template or language.
 - Storing reference numbers, account fragments, recipient bank details, raw
   email text, or headers.
@@ -157,7 +164,7 @@ return .transaction(TransactionDraft(
 - Import a Flip receipt as a Mandiri receipt.
 - Infer a missing recipient, timestamp, amount, reference, or transaction
   type.
-- Include `transferOut` records in confirmed spending analytics.
+- Change how other transaction kinds contribute to spending analytics.
 - Log or persist raw email contents or sensitive banking fields.
 - Modify Gmail messages or labels.
 
@@ -172,20 +179,21 @@ return .transaction(TransactionDraft(
   parser blocking the other.
 - Flip receipts and unsupported bank formats remain untouched.
 - A merchant rule can suggest a category but cannot bypass Review.
-- Categorizing or accepting a Mandiri transfer does not add its amount to the
-  spending dashboard.
+- Categorizing and accepting a Mandiri transfer adds its amount to the selected
+  month's spending total and chosen category.
 - Core tests and the simulator build pass.
 - README and existing Gmail/BCA documentation describe the multi-bank import
   behavior accurately before implementation is considered complete.
 
 ## Open Questions
 
-- None for this slice. Treating selected bank transfers as expenses can be
-  specified later as a separate transaction-kind editing feature.
+- Does the owner want a future way to mark an accepted Mandiri transfer as an
+  account move so it is excluded from spending? This version intentionally
+  does not infer that from a recipient name or bank.
 
 ## Implementation Status
 
-Implemented with strict local parsing, shared BCA plus Mandiri Review import,
-duplicate protection, merchant-rule suggestions, and bank-neutral import
-confirmation. Live Gmail sign-out and restoration checks remain deferred and
-are not required to verify this parser.
+The parser, shared BCA plus Mandiri Review import, duplicate protection,
+merchant-rule suggestions, bank-neutral import confirmation, and accepted
+transfer spending policy are implemented. Live Gmail sign-out and restoration
+checks remain deferred and are not required to verify this parser.

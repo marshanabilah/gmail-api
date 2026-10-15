@@ -388,7 +388,7 @@ semantics, Review behavior, commands, and deferred auth checks match the code.
 **Acceptance criteria:**
 
 - [x] README lists BCA and Mandiri as active Gmail imports and explains that
-  Mandiri transfers do not count as spending.
+  Mandiri transfers count as spending only after acceptance.
 - [x] Gmail and BCA specs no longer describe the importer as BCA-only.
 - [x] Completed Mandiri tasks and verification results are reflected in this
   task list after the checks pass.
@@ -414,5 +414,55 @@ semantics, Review behavior, commands, and deferred auth checks match the code.
 - [x] All core tests pass.
 - [x] The simulator build succeeds.
 - [x] BCA behavior remains unchanged.
-- [x] Mandiri transfers enter Review and stay outside spending analytics.
+- [x] Mandiri transfers enter Review and count toward spending only after
+  acceptance.
 - [x] README and specs match the implementation.
+
+---
+
+# Mandiri Transfer Spending Policy Task List
+
+Module id: `mandiri-local-import`. This policy applies accepted Mandiri
+transfers to spending analytics while keeping Review items separate.
+
+## 15. Count accepted Mandiri transfers as spending
+
+**Description:** Change the shared analytics classification so a Mandiri
+`transferOut` record counts only after it is accepted from Review. Keep the
+stored transaction kind unchanged and leave all other non-expense kinds out of
+spending totals.
+
+**Acceptance criteria:**
+
+- [x] An accepted `transferOut` is included in the selected month's total and
+  its assigned category breakdown.
+- [x] A `needsReview` `transferOut` remains excluded until accepted.
+- [x] `transferIn`, cash withdrawal, refund, unknown, and all non-ready
+  records remain excluded.
+- [x] README, relevant specifications, and historical Mandiri task/plan
+  records describe the revised policy accurately.
+
+**Verification:**
+
+- [x] Add and observe focused failing analytics tests before changing the
+  production predicate.
+- [x] Focused analytics tests pass after the change.
+- [x] Full core tests, CoreVerification, and the unsigned iOS simulator build
+  pass.
+- [x] `git diff --check` passes and the documentation search finds no stale
+  Mandiri exclusion claim.
+
+**Dependencies:** Approved `SPEC-mandiri-local-import.md` and the approved
+Mandiri Transfer Spending Policy plan.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/SpendingAnalytics.swift`
+- `Tests/ExpenseTrackerCoreTests/SpendingAnalyticsTests.swift`
+- `README.md`
+- `SPEC-mandiri-local-import.md`
+- `SPEC-spending-analytics.md`
+- `tasks/plan.md`
+- `tasks/todo.md`
+
+**Estimated scope:** Small: one logic file, one test file, and documentation.

@@ -62,7 +62,7 @@ public struct GmailMessageBodyDecoder: Sendable {
     private func plainText(fromHTML html: String) -> String {
         let withLineBreaks = html
             .replacingOccurrences(of: #"<br\s*/?>"#, with: "\n", options: .regularExpression)
-            .replacingOccurrences(of: #"</(?:p|div|li|tr|h[1-6])\s*>"#, with: "\n", options: .regularExpression)
+            .replacingOccurrences(of: #"</(?:p|div|li|td|th|tr|h[1-6])\s*>"#, with: "\n", options: .regularExpression)
         let withoutTags = withLineBreaks.replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
         let decodedEntities = withoutTags
             .replacingOccurrences(of: "&nbsp;", with: " ")

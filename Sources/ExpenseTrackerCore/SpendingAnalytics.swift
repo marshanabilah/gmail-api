@@ -109,9 +109,9 @@ public enum SpendingAnalytics {
 
     private static func isExpense(_ kind: TransactionKind) -> Bool {
         switch kind {
-        case .cardPurchase, .qrisPayment, .fee, .manualExpense:
+        case .cardPurchase, .qrisPayment, .fee, .manualExpense, .transferOut:
             true
-        case .transferOut, .transferIn, .cashWithdrawal, .refund, .unknown:
+        case .transferIn, .cashWithdrawal, .refund, .unknown:
             false
         }
     }

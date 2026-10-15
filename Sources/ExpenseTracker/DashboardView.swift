@@ -90,32 +90,14 @@ struct DashboardView: View {
                             }
                         }
 
+                        gmailSection
+
                         Section("Activity") {
                             ForEach(monthTransactions.prefix(5)) { transaction in
                                 TransactionRow(transaction: transaction)
                             }
                             Button("View all activity") {
                                 analyticsDetail = .month(selectedMonth)
-                            }
-                        }
-
-                        if let candidateCount = sync.lastSyncCandidateCount {
-                            Section("Gmail") {
-                                Text(candidateCountDescription(candidateCount))
-                                    .foregroundStyle(.secondary)
-                                if sync.lastSyncSkippedMessageCount > 0 {
-                                    Text(skippedMessageDescription(sync.lastSyncSkippedMessageCount))
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Button("Import transactions", systemImage: "tray.and.arrow.down") {
-                                    prepareBankImport()
-                                }
-                                if let bankImportSummary {
-                                    Text(bankImportSummary)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
                             }
                         }
                     }
@@ -242,7 +224,11 @@ struct DashboardView: View {
     private var emptyStateAction: some View {
         switch sync.state {
         case .connected:
-            syncButton
+            if sync.lastSyncCandidateCount != nil {
+                importButton
+            } else {
+                syncButton
+            }
         case .syncing:
             ProgressView("Syncing Gmail")
         case .failed where sync.canRetryMailboxSync:
@@ -261,6 +247,33 @@ struct DashboardView: View {
             .accessibilityHint("Reads the Transaction label for the last 90 days")
     }
 
+    private var importButton: some View {
+        Button("Import transactions", systemImage: "tray.and.arrow.down") {
+            prepareBankImport()
+        }
+    }
+
+    @ViewBuilder
+    private var gmailSection: some View {
+        if let candidateCount = sync.lastSyncCandidateCount {
+            Section("Gmail") {
+                Text(candidateCountDescription(candidateCount))
+                    .foregroundStyle(.secondary)
+                if sync.lastSyncSkippedMessageCount > 0 {
+                    Text(skippedMessageDescription(sync.lastSyncSkippedMessageCount))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                importButton
+                if let bankImportSummary {
+                    Text(bankImportSummary)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     private func candidateCountDescription(_ count: Int) -> String {
         "\(count) eligible \(count == 1 ? "email was" : "emails were") found. They have not been added to the ledger yet."
     }
@@ -276,7 +289,7 @@ struct DashboardView: View {
             return
         }
         guard !preview.imports.isEmpty else {
-            bankImportSummary = "No new supported BCA or Mandiri transactions were ready to import. Other emails were left untouched."
+            bankImportSummary = emptyBankImportSummary(preview)
             return
         }
         bankImportPreview = preview
@@ -305,6 +318,18 @@ struct DashboardView: View {
         let leftUntouched = preview.ignoredCount + preview.unsupportedCount
         if leftUntouched > 0 {
             details.append("\(leftUntouched) other \(leftUntouched == 1 ? "email was" : "emails were") left untouched.")
+        }
+        return details.joined(separator: " ")
+    }
+
+    private func emptyBankImportSummary(_ preview: BankReviewImportResult) -> String {
+        var details = ["Import finished. Nothing new was added to Review."]
+        if preview.duplicateCount > 0 {
+            details.append("\(preview.duplicateCount) \(preview.duplicateCount == 1 ? "matching transaction was" : "matching transactions were") already in your ledger.")
+        }
+        let unsupported = preview.ignoredCount + preview.unsupportedCount
+        if unsupported > 0 {
+            details.append("\(unsupported) \(unsupported == 1 ? "email was" : "emails were") not a supported BCA QRIS payment or Mandiri transfer, so the app left it untouched.")
         }
         return details.joined(separator: " ")
     }

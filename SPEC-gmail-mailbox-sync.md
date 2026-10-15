@@ -113,7 +113,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
 - Use `Gmail` in user-facing text and `gmail` in code identifiers.
 - Name time boundaries explicitly, such as `startDate` and `messageReceivedAt`.
 - Decode Base64URL MIME content locally and handle plain-text and HTML email
-  parts without rendering remote content.
+  parts without rendering remote content. Preserve HTML table cell boundaries
+  so downstream bank parsers can read their field labels and values.
 - Keep redacted samples in tests only. No real sender addresses, account
   numbers, recipient names, message IDs, transaction IDs, or email bodies
   belong in source control.
@@ -137,6 +138,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   excluded.
 - Test expired authorisation, HTTP failure, malformed MIME, and rate-limit
   responses as non-destructive errors with no partial local writes.
+- Test an HTML-table Mandiri receipt through MIME decoding and the downstream
+  parser, so table fields do not collapse into unsupported text.
 - Test that one message-level 403 does not discard other readable candidates
   and that the completed scan reports the skipped count.
 - After core tests and the simulator build pass, perform one opt-in scan of

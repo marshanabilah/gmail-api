@@ -16,7 +16,8 @@ grouped by the owner’s existing categories.
 - Calculate month boundaries using the iPhone’s current calendar and time
   zone.
 - Show one confirmed-spending total, based only on `ready` records whose kind
-  is a card purchase, QRIS payment, fee, or manual expense.
+  is a card purchase, QRIS payment, fee, manual expense, or outgoing transfer.
+  The current Gmail flow creates outgoing transfers only from Mandiri receipts.
 - Show the amount and count of matching `needsReview` records separately as
   pending review. Pending amounts are not added to confirmed spending or
   category totals.
@@ -31,8 +32,8 @@ grouped by the owner’s existing categories.
   list. Saving a correction affects that record only. The owner may explicitly
   opt in to remember the category for future imports from the same merchant;
   this never recategorizes historical records.
-- Exclude transfers, refunds, cash withdrawals, and unknown kinds from these
-  spending totals.
+- Exclude incoming transfers, refunds, cash withdrawals, and unknown kinds
+  from these spending totals.
 
 ## Non-goals
 
@@ -52,8 +53,8 @@ grouped by the owner’s existing categories.
 
 ### Ask first
 
-- Including transfers, cash withdrawals, refunds, income, or a projected
-  total in spending.
+- Including cash withdrawals, refunds, income, or a projected total in
+  spending.
 - Adding charts, budget targets, a different time zone, or cross-month rollups.
 
 ### Never
@@ -68,8 +69,8 @@ grouped by the owner’s existing categories.
 - The user can select the current month or a locally represented earlier month.
 - The user can inspect all local activity in the selected month and each
   category's confirmed transactions in that month.
-- Confirmed spending excludes Review records, transfers, refunds, cash
-  withdrawals, and transactions outside the selected calendar month.
+- Confirmed spending excludes Review records, incoming transfers, refunds,
+  cash withdrawals, and transactions outside the selected calendar month.
 - Pending-review amount and count are shown independently for the selected
   month.
 - Category totals add up to confirmed spending, except for the explicit

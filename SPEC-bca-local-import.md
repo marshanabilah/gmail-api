@@ -35,6 +35,9 @@ arrive here.
 6. A system-suggested category stays in Review until the owner taps Accept.
    When the owner chooses or creates a category themselves, the transaction
    moves to `ready` immediately and that choice becomes a local merchant rule.
+7. If the scan has no new importable records, the app explains the number that
+   were already in the ledger and the number that were unsupported, without
+   exposing email content.
 
 The Sync action does not create records until this module is implemented and
 the owner explicitly confirms the local Review import after a real
@@ -133,5 +136,5 @@ The local transaction stores:
 
 ## Related Specification
 
-Livin' by Mandiri parsing, transfer semantics, and analytics exclusion are
+Livin' by Mandiri parsing, transfer semantics, and analytics policy are
 defined in `SPEC-mandiri-local-import.md`.
