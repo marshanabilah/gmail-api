@@ -706,3 +706,104 @@ Review, Activity, and analytics.
 - [x] A discarded candidate is ignored in a later import preview.
 - [x] README, specs, plan, and task record accurately describe the completed
   local discard behavior.
+
+---
+
+# Transaction Analytics and Source Breakdown Task List
+
+Module id: `spending-analytics`.
+
+## 23. Add source totals to the core analytics summary
+
+**Description:** Add failing core tests for source grouping, then extend the
+analytics input and monthly summary so confirmed spending is grouped by stored
+source as well as category.
+
+**Acceptance criteria:**
+
+- [x] BCA, Mandiri, Cash, and E-wallet have separate source rows.
+- [x] Every source total uses only confirmed expenses in the selected month.
+- [x] A future nonempty source remains its own readable group and source totals
+  add to confirmed spending.
+
+**Verification:**
+
+- [x] Focused tests fail before implementation, then pass:
+  `swift test -j 1 --filter SpendingAnalyticsTests`
+
+**Dependencies:** Approved `SPEC-spending-analytics.md` and implementation
+plan.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/SpendingAnalytics.swift`
+- `Tests/ExpenseTrackerCoreTests/SpendingAnalyticsTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 24. Add Analytics mode to Transactions
+
+**Description:** Keep the normal ledger as the default Transactions mode and
+add an Analytics mode with a month picker, spending and pending-review totals,
+category rows, source rows, and editable detail lists.
+
+**Acceptance criteria:**
+
+- [x] The owner can switch between Transactions and Analytics without leaving
+  the tab.
+- [x] Category and source rows open only their selected month’s confirmed
+  transactions.
+- [x] Editing or deleting from each detail list retains existing behavior.
+
+**Verification:**
+
+- [x] Unsigned simulator build succeeds.
+- [x] Code inspection confirms each row has a working destination and empty
+  states name the selected filter.
+
+**Dependencies:** Task 23.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/TransactionsView.swift`
+- `Sources/ExpenseTracker/DashboardView.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 25. Compact Dashboard and align documentation
+
+**Description:** Remove duplicated analytics controls from Dashboard while
+retaining current-month spending, Review context, Gmail controls, and recent
+activity. Align public documentation with the new navigation.
+
+**Acceptance criteria:**
+
+- [x] Dashboard has no month picker, category/source sections, or analytics
+  detail sheet.
+- [x] Transactions owns detailed analytics and Dashboard keeps its current
+  month context.
+- [x] README and the analytics spec describe the implemented placement.
+
+**Verification:**
+
+- [x] Full core suite and `CoreVerification` pass.
+- [x] Unsigned simulator build succeeds.
+- [x] `git diff --check` passes.
+
+**Dependencies:** Task 24.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/DashboardView.swift`
+- `README.md`
+- `SPEC-spending-analytics.md`
+
+**Estimated scope:** Small: 3 files.
+
+## Checkpoint J: Transaction analytics complete
+
+- [x] Source and category totals each match the selected month’s confirmed
+  spending.
+- [x] The full test suite, CoreVerification, and unsigned simulator build pass.
+- [ ] Optional manual check: switch to Analytics, open one category and one
+  source, then return to the ledger without starting a Gmail sync.

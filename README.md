@@ -11,9 +11,10 @@ parse-only while their import rules are refined.
 The project contains a native SwiftUI foundation and a local import core.
 
 - Local SwiftData models for transactions and learned merchant categories
-- Dashboard, transaction history, and review screens
-- Month-by-month confirmed-spending totals and category breakdowns; pending
-  Review items are shown separately rather than counted as spending
+- Dashboard, transaction history, analytics, and review screens
+- Month-by-month confirmed-spending totals with category and source breakdowns
+  in Transactions; pending Review items are shown separately rather than
+  counted as spending
 - Google Sign-In for one Gmail account, with Gmail read-only access only
 - Manual 90-day scans of the owner-maintained `Transaction` Gmail label
 - A labeled message that Gmail refuses to return is skipped without discarding

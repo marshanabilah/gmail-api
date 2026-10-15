@@ -5,22 +5,47 @@ struct TransactionsView: View {
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     @State private var showsManualEntry = false
     @State private var transactionBeingEdited: TransactionRecord?
+    @State private var displayMode: TransactionsDisplayMode = .transactions
+    @State private var selectedMonth = SpendingAnalytics.monthStart(for: .now)
+    @State private var analyticsDetail: TransactionAnalyticsDetail?
+
+    private var analyticsInputs: [SpendingAnalyticsInput] {
+        transactions.map {
+            SpendingAnalyticsInput(
+                occurredAt: $0.occurredAt,
+                amount: $0.amount,
+                kind: TransactionKind(rawValue: $0.kind) ?? .unknown,
+                category: $0.category,
+                status: ImportStatus(rawValue: $0.status) ?? .needsReview,
+                source: $0.bankID
+            )
+        }
+    }
+
+    private var availableMonths: [Date] {
+        SpendingAnalytics.availableMonths(transactions: analyticsInputs)
+    }
+
+    private var monthlySummary: MonthlySpendingSummary {
+        SpendingAnalytics.summary(for: selectedMonth, transactions: analyticsInputs)
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                if transactions.isEmpty {
-                    ContentUnavailableView("No transactions", systemImage: "list.bullet.rectangle", description: Text("Run a Gmail sync to see imported transaction emails here."))
-                } else {
-                    ForEach(transactions) { transaction in
-                        Button {
-                            transactionBeingEdited = transaction
-                        } label: {
-                            TransactionRow(transaction: transaction)
+                Section {
+                    Picker("View", selection: $displayMode) {
+                        ForEach(TransactionsDisplayMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Edit category for \(transaction.merchant)")
                     }
+                    .pickerStyle(.segmented)
+                }
+
+                if displayMode == .transactions {
+                    transactionList
+                } else {
+                    analyticsList
                 }
             }
             .navigationTitle("Transactions")
@@ -37,6 +62,228 @@ struct TransactionsView: View {
         }
         .sheet(item: $transactionBeingEdited) { transaction in
             TransactionCategoryEditor(transaction: transaction)
+        }
+        .sheet(item: $analyticsDetail) { detail in
+            NavigationStack {
+                MonthlyTransactionDetailView(detail: detail, transactions: transactions)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { analyticsDetail = nil }
+                        }
+                    }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var transactionList: some View {
+        if transactions.isEmpty {
+            ContentUnavailableView(
+                "No transactions",
+                systemImage: "list.bullet.rectangle",
+                description: Text("Run a Gmail sync or add a transaction to see it here.")
+            )
+        } else {
+            ForEach(transactions) { transaction in
+                Button {
+                    transactionBeingEdited = transaction
+                } label: {
+                    TransactionRow(transaction: transaction)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Edit category for \(transaction.merchant)")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var analyticsList: some View {
+        Section("Spending") {
+            Picker("Month", selection: $selectedMonth) {
+                ForEach(availableMonths, id: \.self) { month in
+                    Text(month.formatted(.dateTime.year().month(.wide))).tag(month)
+                }
+            }
+            LabeledContent("Confirmed spending", value: monthlySummary.confirmedSpending, format: .currency(code: "IDR"))
+            if monthlySummary.pendingReviewCount > 0 {
+                LabeledContent("Pending review", value: monthlySummary.pendingReviewAmount, format: .currency(code: "IDR"))
+                    .foregroundStyle(.orange)
+                Text("\(monthlySummary.pendingReviewCount) \(monthlySummary.pendingReviewCount == 1 ? "transaction still needs" : "transactions still need") your confirmation.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Section("By category") {
+            if monthlySummary.categories.isEmpty {
+                Text("No confirmed spending for this month.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(monthlySummary.categories, id: \.category) { category in
+                    Button {
+                        analyticsDetail = .category(month: selectedMonth, category: category.category)
+                    } label: {
+                        AnalyticsTotalRow(title: category.category, amount: category.amount)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("View \(category.category) transactions")
+                }
+            }
+        }
+
+        Section("By source") {
+            if monthlySummary.sources.isEmpty {
+                Text("No confirmed spending for this month.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(monthlySummary.sources, id: \.source) { source in
+                    Button {
+                        analyticsDetail = .source(month: selectedMonth, source: source.source)
+                    } label: {
+                        AnalyticsTotalRow(title: source.source, amount: source.amount)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("View \(source.source) transactions")
+                }
+            }
+        }
+
+        Section("Activity") {
+            Button("View activity for \(selectedMonth.formatted(.dateTime.year().month(.wide)))") {
+                analyticsDetail = .month(selectedMonth)
+            }
+        }
+    }
+}
+
+private enum TransactionsDisplayMode: CaseIterable, Identifiable {
+    case transactions
+    case analytics
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .transactions: "Transactions"
+        case .analytics: "Analytics"
+        }
+    }
+}
+
+private struct AnalyticsTotalRow: View {
+    let title: String
+    let amount: Decimal
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(amount, format: .currency(code: "IDR"))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private enum TransactionAnalyticsDetail: Identifiable {
+    case month(Date)
+    case category(month: Date, category: String)
+    case source(month: Date, source: String)
+
+    var id: String {
+        switch self {
+        case .month(let month):
+            "month-\(month.timeIntervalSinceReferenceDate)"
+        case .category(let month, let category):
+            "category-\(month.timeIntervalSinceReferenceDate)-\(category)"
+        case .source(let month, let source):
+            "source-\(month.timeIntervalSinceReferenceDate)-\(source)"
+        }
+    }
+
+    var month: Date {
+        switch self {
+        case .month(let month), .category(let month, _), .source(let month, _):
+            month
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .month(let month):
+            month.formatted(.dateTime.year().month(.wide))
+        case .category(_, let category):
+            category
+        case .source(_, let source):
+            source
+        }
+    }
+}
+
+private struct MonthlyTransactionDetailView: View {
+    let detail: TransactionAnalyticsDetail
+    let transactions: [TransactionRecord]
+    @State private var transactionBeingEdited: TransactionRecord?
+
+    private var filteredTransactions: [TransactionRecord] {
+        transactions.filter { transaction in
+            guard Calendar.current.isDate(transaction.occurredAt, equalTo: detail.month, toGranularity: .month) else {
+                return false
+            }
+            switch detail {
+            case .month:
+                return true
+            case .category(_, let category):
+                return isConfirmedExpense(transaction)
+                    && SpendingAnalytics.categoryName(for: transaction.category) == category
+            case .source(_, let source):
+                return isConfirmedExpense(transaction)
+                    && SpendingAnalytics.sourceName(for: transaction.bankID) == source
+            }
+        }
+    }
+
+    var body: some View {
+        List {
+            if filteredTransactions.isEmpty {
+                ContentUnavailableView(
+                    "No transactions",
+                    systemImage: "list.bullet",
+                    description: Text(emptyStateDescription)
+                )
+            } else {
+                ForEach(filteredTransactions) { transaction in
+                    Button {
+                        transactionBeingEdited = transaction
+                    } label: {
+                        TransactionRow(transaction: transaction)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit category for \(transaction.merchant)")
+                }
+            }
+        }
+        .navigationTitle(detail.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $transactionBeingEdited) { transaction in
+            TransactionCategoryEditor(transaction: transaction)
+        }
+    }
+
+    private func isConfirmedExpense(_ transaction: TransactionRecord) -> Bool {
+        SpendingAnalytics.isConfirmedExpense(
+            kind: TransactionKind(rawValue: transaction.kind) ?? .unknown,
+            status: ImportStatus(rawValue: transaction.status) ?? .needsReview
+        )
+    }
+
+    private var emptyStateDescription: String {
+        switch detail {
+        case .month:
+            "No transactions were recorded in the selected month."
+        case .category:
+            "No confirmed spending matches this category in the selected month."
+        case .source:
+            "No confirmed spending matches this source in the selected month."
         }
     }
 }

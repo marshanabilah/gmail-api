@@ -543,3 +543,81 @@ Core suite, app build, optional live Gmail confirmation
 ## Open Questions
 
 - None. The owner confirmed that accepted e-money top-ups count as spending.
+
+---
+
+# Implementation Plan: Transaction Analytics and Source Breakdown
+
+Module id: `spending-analytics`
+
+## Overview
+
+Move detailed monthly analytics from Dashboard into an Analytics mode within
+Transactions. Add a confirmed-spending breakdown by stored transaction source,
+alongside the existing category breakdown. Both detail routes remain editable
+ledger views, while Dashboard keeps only compact current-month context.
+
+## Architecture Decisions
+
+- Extend the existing pure `SpendingAnalyticsInput` with a stored source ID.
+  Its core result maps known IDs to BCA, Mandiri, Cash, and E-wallet and gives
+  any future source its own readable row. This avoids a SwiftData migration and
+  guarantees source totals account for every confirmed expense.
+- Keep category and source grouping in the same core summary so both use the
+  identical month and confirmed-expense predicate.
+- Place a native Transactions/Analytics picker inside `TransactionsView`.
+  The ledger remains the default mode and keeps Add transaction.
+- Reuse one detail screen with a filter descriptor for full month, category,
+  or source. It must only show confirmed expenses for category/source filters.
+- Dashboard uses the current month only and removes its month picker,
+  category breakdown, source breakdown, and analytics detail sheet.
+
+## Dependency Graph
+
+```text
+Source-aware core summary and tests
+        |
+        v
+Transactions Analytics mode and drill-down
+        |
+        v
+Compact Dashboard and documentation alignment
+        |
+        v
+Full verification
+```
+
+## Proposed Work
+
+1. Add failing source-grouping tests, then extend the core analytics input and
+   summary with source totals while preserving every existing month, category,
+   and Review rule.
+2. Add the Transactions/Analytics mode, source rows, and reusable month,
+   category, and source detail filtering. Preserve transaction editing and
+   deletion from every detail route.
+3. Remove duplicated detailed analytics from Dashboard, retain compact current
+   month and Gmail state, and align the README, spec, and task record.
+4. Run focused analytics tests, the complete suite, CoreVerification, an
+   unsigned simulator build, and one optional manual UI check without starting
+   a Gmail scan.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Source totals omit a future bank | High | Treat an unrecognized nonempty source as its own readable group and test it. |
+| Category and source totals disagree | High | Produce both from the same confirmed-expense collection and assert each total. |
+| Dashboard and Transactions show competing analytics | Medium | Remove Dashboard’s picker, breakdowns, and detail route in the final UI slice. |
+| Detail filters show Review items as spending | High | Reuse the existing confirmed-expense predicate for category and source detail filters. |
+
+## Open Questions
+
+- None. The owner approved the Transactions/Analytics placement and source
+  grouping model.
+
+## Implementation Status
+
+Source grouping, the Transactions/Analytics switch, category and source
+drill-downs, compact Dashboard, and documentation alignment are implemented.
+Core tests, CoreVerification, and the unsigned simulator build pass. A manual
+Analytics navigation check remains optional.

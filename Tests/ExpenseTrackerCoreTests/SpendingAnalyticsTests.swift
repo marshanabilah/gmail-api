@@ -51,6 +51,32 @@ final class SpendingAnalyticsTests: XCTestCase {
         ])
     }
 
+    func testMonthlySummaryGroupsConfirmedSpendingBySource() throws {
+        let october = try date(year: 2026, month: 10, day: 8)
+
+        let summary = SpendingAnalytics.summary(
+            for: october,
+            transactions: [
+                input(date: october, amount: 100_000, kind: .qrisPayment, category: "Food & drink", status: .ready, source: "bca"),
+                input(date: october, amount: 20_000, kind: .qrisPayment, category: "Food & drink", status: .ready, source: "bca"),
+                input(date: october, amount: 50_000, kind: .transferOut, category: "Bills", status: .ready, source: "mandiri"),
+                input(date: october, amount: 30_000, kind: .manualExpense, category: "Shopping", status: .ready, source: "eWallet"),
+                input(date: october, amount: 25_000, kind: .manualExpense, category: "Food & drink", status: .ready, source: "cash"),
+                input(date: october, amount: 10_000, kind: .cardPurchase, category: "Transport", status: .ready, source: "jago"),
+                input(date: october, amount: 90_000, kind: .qrisPayment, category: "Food & drink", status: .needsReview, source: "bca"),
+            ],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(summary.sources, [
+            SpendingSourceTotal(source: "BCA", amount: 120_000),
+            SpendingSourceTotal(source: "Mandiri", amount: 50_000),
+            SpendingSourceTotal(source: "E-wallet", amount: 30_000),
+            SpendingSourceTotal(source: "Cash", amount: 25_000),
+            SpendingSourceTotal(source: "Jago", amount: 10_000),
+        ])
+    }
+
     func testAvailableMonthsIncludesCurrentMonthEvenBeforeAnyTransactionExists() throws {
         let october = try date(year: 2026, month: 10, day: 8)
         let august = try date(year: 2026, month: 8, day: 20)
@@ -82,8 +108,22 @@ final class SpendingAnalyticsTests: XCTestCase {
         XCTAssertEqual(SpendingAnalytics.categoryName(for: "  Food & drink  "), "Food & drink")
     }
 
-    private func input(date: Date, amount: Decimal, kind: TransactionKind, category: String?, status: ImportStatus) -> SpendingAnalyticsInput {
-        SpendingAnalyticsInput(occurredAt: date, amount: amount, kind: kind, category: category, status: status)
+    private func input(
+        date: Date,
+        amount: Decimal,
+        kind: TransactionKind,
+        category: String?,
+        status: ImportStatus,
+        source: String = "bca"
+    ) -> SpendingAnalyticsInput {
+        SpendingAnalyticsInput(
+            occurredAt: date,
+            amount: amount,
+            kind: kind,
+            category: category,
+            status: status,
+            source: source
+        )
     }
 
     private func date(year: Int, month: Int, day: Int) throws -> Date {
