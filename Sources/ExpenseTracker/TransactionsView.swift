@@ -527,7 +527,16 @@ struct TransactionCategoryEditor: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    if preservesReviewStatus {
+                        Button("Save & accept") { save(acceptingReview: true) }
+                    } else {
+                        Button("Save") { save(acceptingReview: false) }
+                    }
+                }
+                if preservesReviewStatus {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Save for later") { save(acceptingReview: false) }
+                    }
                 }
             }
         }
@@ -550,14 +559,14 @@ struct TransactionCategoryEditor: View {
         }
     }
 
-    private func save() {
+    private func save(acceptingReview: Bool) {
         guard let normalizedDescription = TransactionDescription.normalized(description) else {
             validationMessage = "Add a description so you can recognize this transaction later."
             return
         }
         transaction.merchant = normalizedDescription
         transaction.category = category
-        if transaction.status == ImportStatus.needsReview.rawValue, !preservesReviewStatus {
+        if transaction.status == ImportStatus.needsReview.rawValue, (!preservesReviewStatus || acceptingReview) {
             transaction.status = ImportStatus.ready.rawValue
         }
         if remembersMerchant {
