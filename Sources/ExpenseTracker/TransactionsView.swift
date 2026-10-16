@@ -523,19 +523,14 @@ struct TransactionCategoryEditor: View {
             }
             .navigationTitle("Edit transaction")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     if preservesReviewStatus {
-                        Button("Save & accept") { save(acceptingReview: true) }
+                        Menu("Save") {
+                            Button("Save & accept") { save(acceptingReview: true) }
+                            Button("Save for later") { save(acceptingReview: false) }
+                        }
                     } else {
                         Button("Save") { save(acceptingReview: false) }
-                    }
-                }
-                if preservesReviewStatus {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Save for later") { save(acceptingReview: false) }
                     }
                 }
             }
