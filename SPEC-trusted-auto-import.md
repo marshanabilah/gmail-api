@@ -20,7 +20,7 @@ financial activity in Review.
 1. A new supported bank receipt reaches Review unless a trusted exact-match
    rule applies.
 2. The owner chooses a category and taps Save in Review. That transaction is
-   accepted and a trusted rule is stored automatically—there is no separate
+   accepted and a trusted rule is stored automatically. There is no separate
    “use for future” toggle.
 3. Existing matching pending items may receive a category suggestion and stay
    pending; only their own Save action accepts them.

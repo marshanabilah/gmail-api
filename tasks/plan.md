@@ -1,7 +1,8 @@
 # Implementation Plan: Gmail Authentication
 
 > Historical planning record. The current implemented behavior and acceptance
-> policy are maintained in the module specifications and `tasks/todo.md`.
+> policy are maintained in the README and module specifications. Later plans
+> in this file supersede earlier assumptions when they conflict.
 
 ## Goal
 
@@ -797,7 +798,8 @@ until choosing `Show all`.
   Gmail state, or analytics totals.
 - Use the existing Jakarta month calendar helper for filtering and preserve
   Review's descending date sort.
-- Remove Dashboard's pending-review line and explanatory copy completely.
+- Keep Dashboard's compact pending-review amount and count, but remove any
+  pending-item list. The summary opens Review without applying a month filter.
 
 ## Proposed Work
 
@@ -805,7 +807,8 @@ until choosing `Show all`.
 2. Wire `RootView`, Transactions Analytics, and Review through the optional
    month filter; make the Analytics pending row a button and provide `Show all`
    in Review.
-3. Remove Dashboard pending-review UI and align documentation/task records.
+3. Remove Dashboard's pending-item list, retain its compact summary, and align
+   documentation/task records.
 4. Run focused tests, full tests, CoreVerification, an unsigned simulator
    build, and an optional manual tap-through.
 
@@ -816,7 +819,7 @@ until choosing `Show all`.
 | The selected month does not reach Review | High | Keep tab and filter state in RootView and test the filter separately. |
 | Older pending transactions become inaccessible | High | Always show an explicit `Show all` action. |
 | Review actions break while filtered | Medium | Filter only the displayed collection; reuse every existing action unchanged. |
-| Dashboard repeats Review information | Low | Remove its pending amount/count and retain only confirmed spending. |
+| Dashboard repeats Review information | Low | Keep only its compact pending amount/count and no pending-item list. |
 
 ## Open Questions
 
@@ -831,9 +834,11 @@ Module id: `review-description-editing`
 
 ## Overview
 
-Allow every pending imported transaction—BCA, Mandiri, OCTO CIMB, Jago, and
-future sources—to have its local description edited before acceptance. The
-edit remains in Review and never changes Gmail or creates a merchant rule.
+Allow every pending imported transaction, including BCA, Mandiri, OCTO CIMB,
+Jago, and future sources, to have its local description edited before
+acceptance. The edit remains local and never changes Gmail. The later trusted
+import plan defines when saving an eligible transaction updates an existing
+exact rule.
 
 ## Proposed Work
 

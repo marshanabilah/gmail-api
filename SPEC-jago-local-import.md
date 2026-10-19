@@ -85,8 +85,9 @@ is the only permitted fallback.
    bank-and-merchant rule become ready; transfers, top-ups, and the debit-card
    alert enter Review. The debit-card alert is visibly labelled as provisional.
 4. Other saved merchant rules may suggest a category but never bypass Review.
-5. The owner accepts a suggestion or chooses a category. Only then does the
-   payment contribute to confirmed spending and the Jago source total.
+5. A ready trusted import contributes immediately. For Review items, the owner
+   accepts a suggestion or chooses a category before the payment contributes
+   to confirmed spending and the Jago source total.
 
 ## Editing an Imported Description
 

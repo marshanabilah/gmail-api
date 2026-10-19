@@ -1,5 +1,9 @@
 # BCA iPhone-First Sync
 
+> Historical discovery note. The implemented scope now supports BCA, Mandiri,
+> OCTO CIMB QR purchases, and approved Jago formats. See the README and active
+> specifications for current behavior.
+
 ## Problem Statement
 
 How might we import routine BCA transaction emails into a private iPhone ledger without operating a server or claiming iOS can guarantee background sync?

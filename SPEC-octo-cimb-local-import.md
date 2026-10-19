@@ -5,8 +5,8 @@ Module id: `octo-cimb-local-import`
 ## Objective
 
 Extend the existing read-only Gmail import so a complete OCTO App **Purchase
-with QR** receipt becomes one local OCTO CIMB transaction in Review. The
-owner can confirm its category before it contributes to spending; Gmail stays
+with QR** receipt becomes one local OCTO CIMB transaction. It needs Review
+unless an exact trusted bank-and-merchant rule makes it ready. Gmail stays
 unchanged and receipt metadata stays out of the local ledger.
 
 ## Supported Receipt Shape
@@ -30,14 +30,15 @@ fragment, Point Xtra amount, raw email, or headers.
 
 1. The owner taps Sync Gmail; the app scans the existing `Transaction` label
    for the last 90 days.
-2. The importer tries BCA, Mandiri, then OCTO CIMB receipt parsers.
+2. The importer tries BCA, Mandiri, OCTO CIMB, and supported Jago receipt
+   parsers.
 3. A complete, non-duplicate QR-purchase receipt appears in the import
    confirmation and, after the owner imports it, enters Review unless an exact
    trusted bank-and-merchant rule makes it `ready`.
 4. Other merchant rules may suggest a category but never bypass Review.
-5. The owner accepts a suggestion or chooses a category. Only then does it
-   contribute to confirmed spending, category analytics, and the OCTO CIMB
-   source total.
+5. A ready trusted import contributes immediately. For Review items, the owner
+   accepts a suggestion or chooses a category before it contributes to
+   confirmed spending, category analytics, and the OCTO CIMB source total.
 
 ## Tech Stack and Project Structure
 
@@ -116,7 +117,8 @@ return .transaction(TransactionDraft(
 - Parse locally and use the existing one-account, read-only, manual Gmail
   scan.
 - Keep the exact `Transaction` label, 90-day window, and Flip exclusion.
-- Send every recognized OCTO CIMB QR purchase to Review first.
+- Send each recognized OCTO CIMB QR purchase to Review unless an exact trusted
+  bank-and-merchant rule makes it ready.
 - Persist only fields already represented by `TransactionRecord`.
 
 ### Ask First

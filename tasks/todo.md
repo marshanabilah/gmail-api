@@ -2,6 +2,11 @@
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` complete.
 
+> Historical task record. Tasks are ordered by the time they were planned;
+> later tasks supersede earlier behavior when they conflict. Unchecked
+> owner-controlled device checks remain intentionally open. The README and
+> module specifications define current behavior.
+
 ## 1. Decide the native iOS OAuth integration
 
 - [x] Read the current official Google iOS OAuth guidance and Apple
@@ -1093,12 +1098,14 @@ review row navigable, and expose an explicit `Show all` action in Review.
 
 ## 35. Keep Dashboard focused and verify
 
-**Description:** Remove Dashboard pending-review UI, align documentation, and
-validate the complete navigation flow.
+**Description:** Keep Dashboard's compact pending-review summary without a
+pending-item list, align documentation, and validate the complete navigation
+flow.
 
 **Acceptance criteria:**
 
-- [ ] Dashboard shows no pending-review amount or count.
+- [x] Dashboard shows a compact pending-review amount and count but no
+  pending-item list.
 - [ ] README/spec/task record describe Analytics → Review drill-down.
 - [ ] Full tests, CoreVerification, unsigned simulator build, and whitespace
   check pass.
@@ -1110,7 +1117,7 @@ validate the complete navigation flow.
 ## Checkpoint M: Analytics Review drill-down complete
 
 - [ ] Analytics figures lead to the matching pending Review records.
-- [ ] Dashboard contains no pending-review summary.
+- [x] Dashboard contains a compact pending-review summary without a list.
 - [ ] Full automated verification passes.
 
 ---
@@ -1127,18 +1134,18 @@ uncategorized pending items; eligible purchases teach exact future imports.
 
 **Acceptance criteria:**
 
-- [ ] BCA, Mandiri, OCTO CIMB, Jago, and future pending imports open the
+- [x] BCA, Mandiri, OCTO CIMB, Jago, and future pending imports open the
   shared editor with description and category fields.
-- [ ] Blank descriptions are rejected; Cancel makes no change.
-- [ ] Saving accepts only the edited item, preserves Gmail, source ID, amount,
+- [x] Blank descriptions are rejected; Cancel makes no change.
+- [x] Saving accepts only the edited item, preserves Gmail, source ID, amount,
   kind, date, and fingerprint, and suggests its category to matching
   uncategorized pending items without accepting them.
-- [ ] Saving an eligible Review purchase teaches an exact trusted rule without
+- [x] Saving an eligible Review purchase teaches an exact trusted rule without
   an extra control; discard and Review month filtering still work.
 
 **Verification:**
 
-- [ ] Full tests and unsigned simulator build pass.
+- [x] Full tests and unsigned simulator build pass.
 - [ ] Optional manual check: rename one pending BCA or Mandiri item, then
   categorize and accept it from Review.
 

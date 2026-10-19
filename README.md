@@ -74,9 +74,10 @@ or trusted, they count toward confirmed spending totals.
 | Jago | Structured payment receipt with destination, time, and amount | Imported to Review, unless an exact trusted Jago merchant rule applies |
 | Jago | Transfer or e-wallet top-up receipt with destination, time, and amount | Imported to Review; accepted items count as spending |
 | Jago | Debit-card alert containing only an amount | Imported to Review as `Jago debit card spending`, using Gmail receipt time provisionally; edit the local description before or after categorizing if helpful |
-| OCTO CIMB | OCTO App Purchase with QR receipt with transaction time, merchant, and total payment | Imported to Review; accepted purchases count as spending |
+| OCTO CIMB | OCTO App Purchase with QR receipt with transaction time, merchant, and total payment | Imported to Review, unless an exact trusted OCTO CIMB merchant rule applies |
 | OCTO CIMB | Own-account transfer receipt | Parsed only; not imported in the current Gmail flow |
-| Mandiri | Successful Livin' transfer, payment, or e-money top-up with its required receipt fields | Imported to Review; accepted transfers and e-money top-ups count as spending |
+| Mandiri | Successful Livin' payment with its required receipt fields | Imported to Review, unless an exact trusted Mandiri merchant rule applies |
+| Mandiri | Successful Livin' transfer or e-money top-up with its required receipt fields | Imported to Review; accepted items count as spending |
 
 ## Development
 

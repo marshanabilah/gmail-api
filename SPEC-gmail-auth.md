@@ -27,9 +27,9 @@ handling, sign-in restoration, sign-out behavior, incremental Google API
 scopes, and token refresh. The SDK is therefore the smaller and better-tested
 surface for this iPhone-only app.
 
-The app will use the SDK's own Keychain-backed sign-in state. Our
-`GmailCredentialStore` boundary becomes an abstraction over that state, rather
-than a second store of raw refresh or access tokens. This avoids duplicating
+The app uses the SDK's own Keychain-backed sign-in state. Our
+`GmailCredentialStore` boundary is an abstraction over that state, rather than
+a second store of raw refresh or access tokens. This avoids duplicating
 sensitive credentials while retaining fakeable storage for unit tests.
 
 Official sources:
@@ -38,11 +38,10 @@ Official sources:
 - https://developers.google.com/identity/sign-in/ios/sign-in
 - https://developers.google.com/identity/sign-in/ios/api-access
 
-The first implementation change requires explicit approval to add
-`https://github.com/google/GoogleSignIn-iOS` with the `GoogleSignIn` and
-`GoogleSignInSwift` products, then add the Google-issued iOS URL scheme to the
-app target. It will not add a server client ID, a client secret, or a broader
-Gmail scope.
+The approved implementation adds `https://github.com/google/GoogleSignIn-iOS`
+with the `GoogleSignIn` and `GoogleSignInSwift` products, plus the
+Google-issued iOS URL scheme in the app target. It does not add a server client
+ID, a client secret, or a broader Gmail scope.
 
 ## Commands
 
@@ -135,3 +134,10 @@ protocol GmailCredentialStore {
 
 - Confirm the production callback scheme registered in the Google Cloud OAuth client.
 - Decide whether the app should display the connected Gmail address, and if so, how to obtain it without adding unnecessary scopes.
+
+## Implementation Status
+
+Google authorization, read-only consent, Keychain-backed restoration, and the
+visible Gmail connection state are implemented. The owner has completed a
+configured sign-in. Sign out remains intentionally deferred; it must preserve
+the local ledger when it is added.

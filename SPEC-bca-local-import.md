@@ -26,8 +26,8 @@ do not create records. Supported Jago formats are defined in
 1. The owner connects one Gmail account and taps Sync Gmail.
 2. `gmail-mailbox-sync` reads the owner-maintained `Transaction` label for
    the last 90 days and returns candidates in memory.
-3. The shared Review importer tries the BCA parser, Mandiri receipt parsers,
-   then the supported OCTO CIMB QR-purchase parser.
+3. The shared importer tries the BCA, Mandiri, OCTO CIMB, and supported Jago
+   receipt parsers.
 4. A valid successful BCA QRIS payment becomes a local transaction. An exact
    trusted bank-and-merchant rule makes it `ready`; otherwise it is
    `needsReview`, possibly with a suggested category.
@@ -36,15 +36,15 @@ do not create records. Supported Jago formats are defined in
 6. A system-suggested category stays in Review until the owner taps Accept.
    When the owner saves a category themselves, the transaction moves to
    `ready`, creates an exact trusted bank-and-merchant rule for an eligible
-   QR/card purchase, and suggests—but does not accept—that category for
+   QR/card purchase, and suggests, but does not accept, that category for
    matching pending items that do not already have one.
 7. If the scan has no new importable records, the app explains the number that
    were already in the ledger and the number that were unsupported, without
    exposing email content.
 
-The Sync action does not create records until this module is implemented and
-the owner explicitly confirms the local Review import after a real
-`Transaction` label scan.
+After the owner confirms an import preview from a real `Transaction` label
+scan, the Sync action creates local records using the status selected by the
+shared importer.
 
 ## Accepted BCA Email Shape
 

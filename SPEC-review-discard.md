@@ -26,8 +26,8 @@ does not alter Gmail, delete Gmail messages, or save bank-email contents.
 
 The Transaction editor also offers **Delete transaction** for any locally
 stored transaction. Manual cash and e-wallet entries are removed locally.
-Imported BCA and Mandiri entries also keep the message-ID-only suppression
-marker, so they do not return after a later sync. Neither path changes Gmail.
+Imported Gmail entries also keep the message-ID-only suppression marker, so
+they do not return after a later sync. Neither path changes Gmail.
 
 ## Tech Stack and Project Structure
 

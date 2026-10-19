@@ -86,7 +86,8 @@ counts as spending under the approved personal-ledger policy.
    days.
 2. `gmail-mailbox-sync` removes confirmed Flip receipts and returns the other
    candidates in memory.
-3. The local importer tries the supported BCA and Mandiri parsers.
+3. The shared importer tries the supported BCA, Mandiri, OCTO CIMB, and Jago
+   parsers.
 4. Valid, non-duplicate BCA and Mandiri transactions are shown in one import
    confirmation.
 5. After confirmation, transfers and top-ups start in Review. An exact trusted
@@ -170,7 +171,7 @@ return .transaction(TransactionDraft(
 - Cover message-ID and fingerprint duplicate handling.
 - Cover a mixed scan containing valid BCA, valid Mandiri, unsupported, and
   Flip-excluded candidates.
-- Prove that imported Mandiri records start in Review and remain
+- Prove that imported Mandiri transfers and top-ups start in Review and remain
   `transferOut`; they count as spending only after the owner accepts them.
 - Run the full core suite and simulator build. Do not require a real Gmail scan
   for parser verification.

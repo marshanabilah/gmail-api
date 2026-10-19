@@ -19,7 +19,8 @@ by category or payment source and open the matching transactions.
   zone.
 - Show one confirmed-spending total, based only on `ready` records whose kind
   is a card purchase, QRIS payment, fee, manual expense, or outgoing transfer.
-  The current Gmail flow creates outgoing transfers only from Mandiri receipts.
+  The current Gmail flow creates outgoing transfers from supported Mandiri and
+  Jago receipts.
 - Show the amount and count of matching `needsReview` records separately as
   pending review. Pending amounts are not added to confirmed spending or
   category totals.
@@ -34,10 +35,11 @@ by category or payment source and open the matching transactions.
   list. Saving a correction affects that record only, except an existing exact
   trusted bank-and-merchant rule is corrected for future imports. This never
   recategorizes historical records.
-- Group the same confirmed spending by source: BCA, Mandiri, Cash, and
-  E-wallet. Source totals use the stored transaction source and sort largest
-  amount first. A source row is tappable and opens only its matching confirmed
-  transactions in the selected month.
+- Group the same confirmed spending by source. Current readable sources include
+  BCA, Mandiri, Jago, OCTO CIMB, Cash, and E-wallet. Source totals use the
+  stored transaction source and sort largest amount first. A source row is
+  tappable and opens only its matching confirmed transactions in the selected
+  month.
 - Preserve the confirmed-spending total if a future supported bank introduces
   another stored source. Its readable source name appears as its own row rather
   than being silently excluded or combined with an unrelated bank.

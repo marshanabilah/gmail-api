@@ -10,10 +10,10 @@ already placed under the Gmail label `Transaction`, limited to the previous 90
 calendar days.
 
 The result is a deterministic, in-memory collection of non-Flip transaction
-email candidates for the local Review importer. The BCA, Mandiri, and OCTO
-CIMB import modules are responsible for bank parsing, duplicate checks,
-categorisation, and Review creation. This module does not write to SwiftData
-or add anything to the ledger.
+email candidates for the local importer. The BCA, Mandiri, OCTO CIMB, and Jago
+import modules are responsible for bank parsing, duplicate checks,
+categorisation, and deciding whether a record is ready or needs review. This
+module does not write to SwiftData or add anything to the ledger.
 
 The label currently contains transaction notifications from BCA, Jago, Livin'
 by Mandiri, and OCTO CIMB. It may also contain Flip transfer receipts. Flip
@@ -86,8 +86,8 @@ SPEC-gmail-auth.md                          -> Existing connection and read-only
 ```
 
 `gmail-mailbox-sync` provides `BankEmail` candidates in memory. The dependent
-BCA and Mandiri local-import modules own parser selection, Review creation,
-duplicate protection, and SwiftData writes.
+BCA, Mandiri, OCTO CIMB, and Jago local-import modules own parser selection,
+import status, duplicate protection, and SwiftData writes.
 
 The downstream Review importer also receives local discard markers. A marker
 contains only a Gmail message ID and prevents that exact candidate from
@@ -148,10 +148,10 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   text.
 - Test that one message-level 403 does not discard other readable candidates
   and that the completed scan reports the skipped count.
-- After core tests and the simulator build pass, perform one opt-in scan of
-  the real `Transaction` label. Verify recognized BCA and Mandiri candidates
-  through the Review screen. Do not use routine UI testing for parser or
-  filtering changes.
+- After core tests and the simulator build pass, perform an owner-controlled
+  scan of the real `Transaction` label only when needed. Verify supported
+  candidates reach Review or Transactions according to their exact trusted
+  rule. Do not use routine UI testing for parser or filtering changes.
 
 ## Boundaries
 
@@ -165,9 +165,9 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   the local importer.
 - Exclude a confirmed Flip receipt before parser selection.
 - Preserve Gmail message IDs for the downstream local duplicate check.
-- Leave every recognized BCA or Mandiri transaction in Review through
-  the downstream importer, even when a local merchant rule suggests its
-  category.
+- Pass candidates to the downstream importer without deciding their status.
+  Only the downstream exact trusted bank-and-merchant policy may make an
+  eligible QR/card purchase ready; other supported records need review.
 - Return an understandable, retryable state when Gmail is unavailable.
 - Continue past an individual message that Gmail refuses with HTTP 403, and
   show how many labeled messages were skipped after the scan.
@@ -180,8 +180,8 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
 - Persisting raw message content, headers, or new Gmail metadata in SwiftData.
 - Adding a Gmail SDK, server, cloud store, analytics service, or third-party
   email-processing service.
-- Changing the initial Review-first policy or allowing imports to bypass the
-  owner's explicit acceptance.
+- Changing the exact trusted-rule policy or expanding which transactions may
+  bypass Review.
 
 ### Never
 
@@ -222,6 +222,6 @@ func isFlipReceipt(_ email: BankEmail) -> Bool {
   be handed to the importer, including any future bank format it does not yet
   recognise? This spec assumes yes: unsupported formats stay unsupported and
   cannot become transactions.
-- Jago candidates remain unsupported until their own import module is
-  specified and approved. Only OCTO CIMB QR-purchase receipts are supported;
-  other OCTO CIMB formats remain unsupported.
+- Supported Jago receipt formats are defined in
+  `SPEC-jago-local-import.md`. Only OCTO CIMB QR-purchase receipts are
+  supported; other OCTO CIMB formats remain unsupported.
