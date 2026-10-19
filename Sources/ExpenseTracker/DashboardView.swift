@@ -6,6 +6,7 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     @Query private var merchantRuleRecords: [MerchantRuleRecord]
+    @Query private var trustedImportRuleRecords: [TrustedImportRuleRecord]
     @Query private var discardedImportRecords: [DiscardedImportRecord]
     @Environment(\.colorScheme) private var colorScheme
     @State private var showsDisconnectConfirmation = false
@@ -235,7 +236,8 @@ struct DashboardView: View {
             existingMessageIDs: Set(transactions.map(\.sourceMessageID)),
             existingFingerprints: Set(transactions.map(\.fingerprint)),
             discardedMessageIDs: Set(discardedImportRecords.map(\.sourceMessageID)),
-            rules: merchantRules
+            rules: merchantRules,
+            trustedRules: trustedImportRules
         )
         guard let preview else {
             bankImportSummary = "Sync Gmail again before preparing transactions for Review."
@@ -254,9 +256,15 @@ struct DashboardView: View {
         }
     }
 
+    private var trustedImportRules: [TrustedImportRule] {
+        trustedImportRuleRecords.map {
+            TrustedImportRule(bankID: $0.bankID, merchant: $0.merchant, category: $0.category)
+        }
+    }
+
     private func saveBankImport(_ preview: BankReviewImportResult) {
         if sync.saveBankReviewImports(preview, in: modelContext) {
-            bankImportSummary = "Added \(preview.imports.count) \(preview.imports.count == 1 ? "transaction" : "transactions") to Review."
+            bankImportSummary = importSummary(preview)
         } else {
             bankImportSummary = "The transactions were not saved. Your existing ledger was left unchanged."
         }
@@ -264,13 +272,27 @@ struct DashboardView: View {
     }
 
     private func bankImportConfirmationMessage(_ preview: BankReviewImportResult) -> String {
-        var details = ["Every transaction will start in Review. Saved category rules can suggest a category, but you decide when to accept it."]
+        var details = ["Trusted exact merchant matches will go directly to Transactions. All other imported transactions will start in Review."]
         if preview.duplicateCount > 0 {
             details.append("\(preview.duplicateCount) duplicate \(preview.duplicateCount == 1 ? "email was" : "emails were") skipped.")
         }
         let leftUntouched = preview.ignoredCount + preview.unsupportedCount
         if leftUntouched > 0 {
             details.append("\(leftUntouched) other \(leftUntouched == 1 ? "email was" : "emails were") left untouched.")
+        }
+        return details.joined(separator: " ")
+    }
+
+    private func importSummary(_ preview: BankReviewImportResult) -> String {
+        let readyCount = preview.imports.filter { $0.status == .ready }.count
+        let reviewCount = preview.imports.count - readyCount
+        var details = [String]()
+
+        if readyCount > 0 {
+            details.append("Added \(readyCount) \(readyCount == 1 ? "transaction" : "transactions") directly to Transactions.")
+        }
+        if reviewCount > 0 {
+            details.append("Added \(reviewCount) \(reviewCount == 1 ? "transaction" : "transactions") to Review.")
         }
         return details.joined(separator: " ")
     }
@@ -299,7 +321,7 @@ struct TransactionRow: View {
                     .foregroundStyle(.secondary)
                 Text(transaction.merchant)
                     .font(.body.weight(.medium))
-                Text(transaction.category ?? "Needs category")
+                Text(reviewCategoryLabel)
                     .font(.caption)
                     .foregroundStyle(transaction.status == "needsReview" ? .orange : .secondary)
             }
@@ -308,5 +330,15 @@ struct TransactionRow: View {
                 .font(.body.weight(.semibold))
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var reviewCategoryLabel: String {
+        guard transaction.status == "needsReview" else {
+            return transaction.category ?? "Uncategorized"
+        }
+        guard let category = transaction.category else {
+            return "Needs category"
+        }
+        return "Suggested: \(category)"
     }
 }

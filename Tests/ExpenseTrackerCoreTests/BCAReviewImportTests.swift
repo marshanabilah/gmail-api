@@ -2,6 +2,33 @@ import XCTest
 @testable import ExpenseTrackerCore
 
 final class BCAReviewImportTests: XCTestCase {
+    func testExactTrustedBCAReceiptBypassesReview() {
+        let result = BankReviewImporter().importCandidates(
+            [bcaEmail(id: "trusted-bca", merchant: "Example Store")],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            rules: [],
+            trustedRules: [TrustedImportRule(bankID: "bca", merchant: "Example Store", category: "Groceries")]
+        )
+
+        XCTAssertEqual(result.imports.first?.category, "Groceries")
+        XCTAssertEqual(result.imports.first?.status, .ready)
+    }
+
+    func testDiscardedTrustedReceiptIsIgnoredBeforeTrustLookup() {
+        let result = BankReviewImporter().importCandidates(
+            [bcaEmail(id: "discarded-trusted", merchant: "Example Store")],
+            existingMessageIDs: [],
+            existingFingerprints: [],
+            discardedMessageIDs: ["discarded-trusted"],
+            rules: [],
+            trustedRules: [TrustedImportRule(bankID: "bca", merchant: "Example Store", category: "Groceries")]
+        )
+
+        XCTAssertTrue(result.imports.isEmpty)
+        XCTAssertEqual(result.ignoredCount, 1)
+    }
+
     func testMixedBCAAndMandiriCandidatesBothEnterReview() {
         let result = BankReviewImporter().importCandidates(
             [bcaEmail(id: "bca-mixed"), mandiriImportEmail(id: "mandiri-mixed")],

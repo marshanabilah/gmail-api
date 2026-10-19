@@ -458,13 +458,14 @@ struct TransactionCategoryEditor: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
-    @Query private var merchantRules: [MerchantRuleRecord]
+    @Query private var trustedImportRules: [TrustedImportRuleRecord]
+    @Query private var transactions: [TransactionRecord]
     let transaction: TransactionRecord
     let acceptsReviewOnSave: Bool
+    let originalMerchant: String
 
     @State private var description: String
-    @State private var category: String
-    @State private var remembersMerchant = false
+    @State private var category: String?
     @State private var showsNewCategory = false
     @State private var showsDeleteConfirmation = false
     @State private var validationMessage: String?
@@ -472,8 +473,9 @@ struct TransactionCategoryEditor: View {
     init(transaction: TransactionRecord, acceptsReviewOnSave: Bool = false) {
         self.transaction = transaction
         self.acceptsReviewOnSave = acceptsReviewOnSave
+        self.originalMerchant = transaction.merchant
         _description = State(initialValue: transaction.merchant)
-        _category = State(initialValue: transaction.category ?? "Food & drink")
+        _category = State(initialValue: transaction.category)
     }
 
     private var categories: [String] {
@@ -493,19 +495,14 @@ struct TransactionCategoryEditor: View {
 
                 Section("Category") {
                     Picker("Category", selection: $category) {
+                        Text("Choose a category").tag(String?.none)
                         ForEach(categories, id: \.self) { option in
-                            Text(option).tag(option)
+                            Text(option).tag(String?.some(option))
                         }
                     }
                     Button("Add category", systemImage: "plus") {
                         showsNewCategory = true
                     }
-                }
-
-                Section {
-                    Toggle("Use for future transactions from this merchant", isOn: $remembersMerchant)
-                } footer: {
-                    Text("This does not recategorize transactions you already saved.")
                 }
 
                 Section {
@@ -557,19 +554,18 @@ struct TransactionCategoryEditor: View {
             validationMessage = "Add a description so you can recognize this transaction later."
             return
         }
+        guard let category else {
+            validationMessage = "Choose a category before saving this transaction."
+            return
+        }
         transaction.merchant = normalizedDescription
         transaction.category = category
         if acceptsReviewOnSave, transaction.status == ImportStatus.needsReview.rawValue {
             transaction.status = ImportStatus.ready.rawValue
-        }
-        if remembersMerchant {
-            if let existingRule = merchantRules.first(where: {
-                $0.merchantContains.caseInsensitiveCompare(transaction.merchant) == .orderedSame
-            }) {
-                existingRule.category = category
-            } else {
-                modelContext.insert(MerchantRuleRecord(merchantContains: transaction.merchant, category: category))
-            }
+            suggestCategoryForMatchingPendingTransactions(category: category)
+            createOrUpdateTrustedRule(merchant: normalizedDescription, category: category)
+        } else {
+            updateExistingTrustedRule(merchant: normalizedDescription, category: category)
         }
 
         do {
@@ -578,6 +574,65 @@ struct TransactionCategoryEditor: View {
         } catch {
             validationMessage = "Could not save the category. Try again."
         }
+    }
+
+    private func suggestCategoryForMatchingPendingTransactions(category: String) {
+        let rule = MerchantRule(merchantContains: transaction.merchant, category: category)
+        let categorizer = MerchantCategorizer()
+
+        for pendingTransaction in transactions where
+            pendingTransaction.id != transaction.id &&
+            pendingTransaction.status == ImportStatus.needsReview.rawValue &&
+            pendingTransaction.category == nil &&
+            categorizer.category(for: pendingTransaction.merchant, rules: [rule]) != nil {
+            pendingTransaction.category = category
+        }
+    }
+
+    private func createOrUpdateTrustedRule(merchant: String, category: String) {
+        guard let kind = TransactionKind(rawValue: transaction.kind),
+              TrustedImportPolicy.isEligibleForAutoImport(merchant: merchant, kind: kind) else {
+            return
+        }
+
+        let key = "\(transaction.bankID)|\(TrustedImportPolicy.normalizedMerchantKey(for: merchant))"
+        if let existingRule = trustedImportRules.first(where: { $0.key == key }) {
+            existingRule.merchant = merchant
+            existingRule.category = category
+        } else {
+            modelContext.insert(TrustedImportRuleRecord(
+                bankID: transaction.bankID,
+                merchant: merchant,
+                category: category
+            ))
+        }
+    }
+
+    private func updateExistingTrustedRule(merchant: String, category: String) {
+        guard let kind = TransactionKind(rawValue: transaction.kind),
+              TrustedImportPolicy.isEligibleForAutoImport(merchant: originalMerchant, kind: kind) else {
+            return
+        }
+
+        let originalKey = "\(transaction.bankID)|\(TrustedImportPolicy.normalizedMerchantKey(for: originalMerchant))"
+        guard let existingRule = trustedImportRules.first(where: { $0.key == originalKey }) else {
+            return
+        }
+
+        let updatedKey = "\(transaction.bankID)|\(TrustedImportPolicy.normalizedMerchantKey(for: merchant))"
+        if let collidingRule = trustedImportRules.first(where: {
+            $0.key == updatedKey && $0.key != originalKey
+        }) {
+            collidingRule.merchant = merchant
+            collidingRule.category = category
+            modelContext.delete(existingRule)
+            return
+        }
+
+        existingRule.key = updatedKey
+        existingRule.merchant = merchant
+        existingRule.normalizedMerchantKey = TrustedImportPolicy.normalizedMerchantKey(for: merchant)
+        existingRule.category = category
     }
 
     private func deleteTransaction() {

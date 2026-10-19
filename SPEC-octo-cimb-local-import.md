@@ -32,8 +32,9 @@ fragment, Point Xtra amount, raw email, or headers.
    for the last 90 days.
 2. The importer tries BCA, Mandiri, then OCTO CIMB receipt parsers.
 3. A complete, non-duplicate QR-purchase receipt appears in the import
-   confirmation and, after the owner imports it, enters Review.
-4. An existing merchant rule may suggest a category but never bypasses Review.
+   confirmation and, after the owner imports it, enters Review unless an exact
+   trusted bank-and-merchant rule makes it `ready`.
+4. Other merchant rules may suggest a category but never bypass Review.
 5. The owner accepts a suggestion or chooses a category. Only then does it
    contribute to confirmed spending, category analytics, and the OCTO CIMB
    source total.
@@ -101,7 +102,8 @@ return .transaction(TransactionDraft(
 - Prove the parser does not use the account fragment, fee, Point Xtra, or
   transaction ID as the merchant label or stored draft data.
 - Prove a mixed BCA, Mandiri, OCTO CIMB, and unsupported scan imports every
-  valid candidate once and keeps all new items in Review.
+  valid candidate once; an exact trusted QR/card merchant may become `ready`,
+  while every other item remains in Review.
 - Prove accepted OCTO CIMB QR purchases count in the OCTO CIMB source total;
   Review items do not.
 - Run the full suite, CoreVerification, and an unsigned simulator build. A
@@ -130,15 +132,17 @@ return .transaction(TransactionDraft(
 - Modify Gmail messages or labels.
 - Guess a missing merchant, timestamp, amount, or purchase type.
 - Import the previous own-account-transfer receipt as a QR purchase.
-- Let an OCTO CIMB item bypass Review or alter existing records on later syncs.
+- Let an OCTO CIMB item bypass Review except through the shared exact trusted
+  bank-and-merchant policy, or alter existing records on later syncs.
 
 ## Success Criteria
 
 - A complete redacted OCTO App QR-purchase receipt produces one `octoCimb`
   `qrisPayment` draft with its merchant, Jakarta timestamp, and total payment.
 - Incomplete or lookalike receipts create no draft.
-- A valid OCTO CIMB candidate enters Review once and participates in normal
-  duplicate protection and merchant-category suggestions.
+- A valid OCTO CIMB candidate enters Review once unless a matching exact
+  trusted rule makes it ready; it still participates in duplicate protection
+  and merchant-category suggestions.
 - After acceptance, the payment appears in confirmed spending and a readable
   `OCTO CIMB` source row; it is excluded while still in Review.
 - Tests, CoreVerification, and the unsigned simulator build pass.

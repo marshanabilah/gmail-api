@@ -10,6 +10,7 @@ struct ExpenseTrackerApp: App {
             container = try ModelContainer(
                 for: TransactionRecord.self,
                 MerchantRuleRecord.self,
+                TrustedImportRuleRecord.self,
                 CategoryRecord.self,
                 DiscardedImportRecord.self
             )

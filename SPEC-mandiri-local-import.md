@@ -7,7 +7,9 @@ Module id: `mandiri-local-import`
 Extend the existing manual Gmail import so supported Livin' by Mandiri
 receipts can become normalized local transactions on the iPhone. The app reads
 only candidates already returned by `gmail-mailbox-sync`, parses the known
-English receipt formats, and sends every new Mandiri transaction to Review.
+English receipt formats. Transfers and e-money top-ups always go to Review;
+an eligible QR payment with an exact trusted bank-and-merchant rule can go
+directly to the ledger.
 
 Mandiri transfers remain `transferOut` records so the source activity stays
 truthful. Once the owner accepts one in Review, it contributes to confirmed
@@ -87,8 +89,9 @@ counts as spending under the approved personal-ledger policy.
 3. The local importer tries the supported BCA and Mandiri parsers.
 4. Valid, non-duplicate BCA and Mandiri transactions are shown in one import
    confirmation.
-5. After confirmation, each new record starts in Review. A saved merchant rule
-   may suggest a category but does not accept the record.
+5. After confirmation, transfers and top-ups start in Review. An exact trusted
+   rule can make an eligible QR payment `ready`; other merchant rules only
+   suggest a category and do not accept the record.
 6. Choosing or creating a category accepts that record immediately. Accepting
    a suggested category remains an explicit action.
 7. A later Gmail sync cannot overwrite a saved transaction or create a

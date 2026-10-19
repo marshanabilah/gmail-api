@@ -31,9 +31,9 @@ by category or payment source and open the matching transactions.
   Full activity retains Review items with their status visible; category detail
   does not include them.
 - Let the owner edit an individual transaction's category from either detail
-  list. Saving a correction affects that record only. The owner may explicitly
-  opt in to remember the category for future imports from the same merchant;
-  this never recategorizes historical records.
+  list. Saving a correction affects that record only, except an existing exact
+  trusted bank-and-merchant rule is corrected for future imports. This never
+  recategorizes historical records.
 - Group the same confirmed spending by source: BCA, Mandiri, Cash, and
   E-wallet. Source totals use the stored transaction source and sort largest
   amount first. A source row is tappable and opens only its matching confirmed

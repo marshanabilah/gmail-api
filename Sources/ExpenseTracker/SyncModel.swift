@@ -76,7 +76,8 @@ final class SyncModel {
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
         discardedMessageIDs: Set<String>,
-        rules: [MerchantRule]
+        rules: [MerchantRule],
+        trustedRules: [TrustedImportRule]
     ) -> BankReviewImportResult? {
         guard !mailbox.latestCandidates.isEmpty else { return nil }
         return BankReviewImporter().importCandidates(
@@ -84,7 +85,8 @@ final class SyncModel {
             existingMessageIDs: existingMessageIDs,
             existingFingerprints: existingFingerprints,
             discardedMessageIDs: discardedMessageIDs,
-            rules: rules
+            rules: rules,
+            trustedRules: trustedRules
         )
     }
 

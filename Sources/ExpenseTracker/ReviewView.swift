@@ -5,6 +5,7 @@ struct ReviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<TransactionRecord> { $0.status == "needsReview" }, sort: \TransactionRecord.occurredAt, order: .reverse) private var transactions: [TransactionRecord]
     @Query private var merchantRules: [MerchantRuleRecord]
+    @Query private var trustedImportRules: [TrustedImportRuleRecord]
     @State private var transactionBeingEdited: TransactionRecord?
     @State private var transactionAwaitingDiscard: TransactionRecord?
     @State private var categoryUpdateSummary: String?
@@ -133,7 +134,27 @@ struct ReviewView: View {
                 pendingTransaction.category = rule.category
             }
         }
+        createOrUpdateTrustedRule(for: transaction, category: category)
         try? modelContext.save()
+    }
+
+    private func createOrUpdateTrustedRule(for transaction: TransactionRecord, category: String) {
+        guard let kind = TransactionKind(rawValue: transaction.kind),
+              TrustedImportPolicy.isEligibleForAutoImport(merchant: transaction.merchant, kind: kind) else {
+            return
+        }
+
+        let key = "\(transaction.bankID)|\(TrustedImportPolicy.normalizedMerchantKey(for: transaction.merchant))"
+        if let existingRule = trustedImportRules.first(where: { $0.key == key }) {
+            existingRule.merchant = transaction.merchant
+            existingRule.category = category
+        } else {
+            modelContext.insert(TrustedImportRuleRecord(
+                bankID: transaction.bankID,
+                merchant: transaction.merchant,
+                category: category
+            ))
+        }
     }
 
     private func applySavedCategories() {

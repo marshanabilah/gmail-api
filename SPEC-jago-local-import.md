@@ -80,20 +80,19 @@ is the only permitted fallback.
    for the last 90 days.
 2. The importer tries BCA, Mandiri, OCTO CIMB QR-purchase, then the Jago
    structured payment, transfer, top-up, and debit-card parsers.
-3. A complete, non-duplicate Jago receipt appears in the import confirmation
-   and, after the owner imports it, enters Review. The debit-card alert also
-   enters Review, visibly labelled as provisional.
-4. A saved merchant rule may suggest a category but never bypasses Review.
+3. A complete, non-duplicate Jago receipt appears in the import confirmation.
+   Eligible structured card/QR payments with an exact trusted
+   bank-and-merchant rule become ready; transfers, top-ups, and the debit-card
+   alert enter Review. The debit-card alert is visibly labelled as provisional.
+4. Other saved merchant rules may suggest a category but never bypass Review.
 5. The owner accepts a suggestion or chooses a category. Only then does the
    payment contribute to confirmed spending and the Jago source total.
 
 ## Editing an Imported Description
 
-The current app can edit a transaction's category but cannot yet edit its
-visible description. This work adds one local description field to the
-existing transaction editor and makes it available directly from Review for
-every pending imported transaction before acceptance. Jago debit-card alerts
-are one important use case, not a special case.
+The app lets the owner edit a transaction's local visible description and
+category from Review or Transactions. Jago debit-card alerts are one important
+use case, not a special case.
 
 - The editor initially shows the stored visible description (the `merchant`
   field in the current local model).
@@ -101,11 +100,15 @@ are one important use case, not a special case.
   description and category accepts the item into the ledger; Cancel dismisses
   the editor without changing it. The owner can discard it instead without
   visiting Transactions first.
+- Saving also suggests its category to matching pending reviews that have no
+  category yet. Those items remain in Review; saving each one is still the
+  acceptance step. This temporary suggestion does not create a rule for a
+  future Gmail import.
 - Saving requires a nonblank trimmed value and updates only that local
   transaction; it never changes Gmail.
-- The owner may then choose whether to create or update a merchant category
-  rule using the edited description. The default is off, so a one-off debit
-  description cannot accidentally alter future categorization.
+- Saving or accepting an eligible structured Jago payment teaches an exact
+  Jago merchant rule automatically. A merchant-less debit alert can never
+  become trusted, even after its description is edited.
 - Editing a description does not change its source Gmail ID, amount, kind,
   receipt time, or duplicate-suppression identity. It also does not alter
   previously saved transactions.
@@ -162,7 +165,8 @@ guard isSupportedStructuredJagoReceipt(lines), let merchant, let occurredAt,
 - Prove the draft merchant is the first To value and never any PAN, account,
   terminal, acquirer, location, or tip value.
 - Prove a mixed BCA, Mandiri, OCTO CIMB, Jago, and unsupported scan imports
-  every valid candidate once and leaves every new record in Review.
+  every valid candidate once; only eligible exact trusted card/QR matches
+  become ready.
 - Prove accepted Jago payments, transfers, and top-ups count in the Jago
   source total; Review items do not.
 - Cover local description edits: blank input is rejected; a valid edit changes
@@ -180,8 +184,8 @@ guard isSupportedStructuredJagoReceipt(lines), let merchant, let occurredAt,
 - Parse locally and use the existing one-account, read-only, manual Gmail
   scan.
 - Keep the exact `Transaction` label, 90-day window, and Flip exclusion.
-- Route every recognized Jago structured payment, transfer, and top-up to
-  Review first.
+- Route Jago transfers and top-ups to Review. Route structured Jago card/QR
+  payments to Review unless an exact trusted bank-and-merchant rule matches.
 - Route every recognized Jago debit-card alert to Review with its fixed,
   visible provisional label.
 - Persist only fields already represented by `TransactionRecord`.
@@ -199,7 +203,8 @@ guard isSupportedStructuredJagoReceipt(lines), let merchant, let occurredAt,
 - Modify Gmail messages or labels.
 - Guess a debit-card merchant or bank transaction time not present in the
   email.
-- Let a Jago item bypass Review or alter existing records on later syncs.
+- Let a Jago item bypass Review except through the shared exact trusted
+  bank-and-merchant policy, or alter existing records on later syncs.
 
 ## Success Criteria
 
@@ -211,8 +216,9 @@ guard isSupportedStructuredJagoReceipt(lines), let merchant, let occurredAt,
   Gmail receipt, with no merchant rule automatically created.
 - Incomplete, failed, or lookalike structured emails create no draft. A valid
   debit-card alert creates only its fixed provisional draft.
-- Every valid Jago candidate enters Review once and participates in normal
-  duplicate protection and merchant-category suggestions.
+- Every valid Jago candidate participates in normal duplicate protection and
+  merchant-category suggestions. Only eligible exact trusted card/QR matches
+  can become ready without Review.
 - After acceptance, the Jago transaction appears in confirmed spending and
   the Jago source total; it is excluded while still in Review.
 - Tests, CoreVerification, and the unsigned simulator build pass.

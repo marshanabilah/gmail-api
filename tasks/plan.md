@@ -727,7 +727,8 @@ transaction description, including that provisional label.
   `TransactionRecord.merchant`; this avoids a data-model migration and keeps
   the current visible transaction label as the owner-facing description.
 - Description changes never mutate Gmail, source IDs, amount, kind, timestamp,
-  fingerprint, or prior transactions. Creating a category rule stays opt-in.
+  fingerprint, or prior transactions. The later `trusted-auto-import` module
+  supersedes the old opt-in rule behavior for eligible exact matches.
 
 ## Dependency Graph
 
@@ -753,9 +754,9 @@ Red parser tests + edit-behavior tests
 2. Register the parsers in the deterministic Review importer; add mixed-import,
    duplicate, analytics, and category-rule coverage so every valid Jago item
    reaches Review exactly once and accepted spending appears under Jago.
-3. Extend the transaction editor with an editable description field, nonblank
-   validation, and an opt-in merchant-rule toggle that uses the final edited
-   description.
+3. Extend the transaction editor with an editable description field and
+   nonblank validation. Exact trusted-rule behavior is defined separately by
+   the later `trusted-auto-import` module.
 4. Align README and import specs, then run focused tests, the full suite,
    CoreVerification, an unsigned simulator build, and an optional live Gmail
    scan after the automated checks pass.
@@ -766,7 +767,7 @@ Red parser tests + edit-behavior tests
 | --- | --- | --- |
 | Account or PAN becomes a visible description | High | Tests assert the first `To` value only; debit alerts use a constant label. |
 | Debit-card timing is presented as bank-confirmed | Medium | Use medium confidence and describe receipt time as provisional in Review. |
-| An edited description silently changes future categorization | High | Leave “use for future transactions” off by default and test that only an explicit toggle writes a rule. |
+| An edited description silently changes future categorization | High | The later `trusted-auto-import` module limits future behavior to an existing exact bank-and-merchant trusted rule. |
 | Jago top-ups or transfers are omitted from spending | High | Reuse `transferOut`, the existing confirmed-expense behavior, and source analytics tests. |
 | Existing category editing regresses | Medium | Preserve category, delete, and duplicate-suppression behavior in unit and build verification. |
 
@@ -846,3 +847,88 @@ edit remains in Review and never changes Gmail or creates a merchant rule.
 ## Open Questions
 
 - None. The edit applies to every pending imported transaction.
+
+---
+
+# Implementation Plan: Trusted Exact-Match Auto Import
+
+Module id: `trusted-auto-import`
+
+## Overview
+
+Replace the opt-in suggestion toggle with a simpler trust contract: saving or
+accepting an eligible Review transaction teaches one exact bank-and-merchant
+rule. Subsequent exact QR/card purchases bypass Review locally. Existing
+merchant rules continue to provide suggestions, while risky or ambiguous
+transaction types remain in Review.
+
+## Architecture Decisions
+
+- Add a separate `TrustedImportRuleRecord`; do not overload the existing
+  fuzzy `MerchantRuleRecord`, which remains suggestion-only.
+- Define the trusted rule value and exact merchant-key normalization in
+  `ExpenseTrackerCore`, then pass trusted rules to `BankReviewImporter`.
+- Let duplicate/discard checks continue before parsing and trust lookup.
+  A trusted rule changes only the imported `status` from `needsReview` to
+  `ready` and supplies its category.
+- Gate auto import to exact bank-and-merchant `.qrisPayment` and
+  `.cardPurchase` drafts. Transfers, top-ups, unknowns, and Jago’s provisional
+  debit alert cannot bypass Review.
+- Remove the existing “Use for future transactions…” toggle. Save/Accept is
+  the only teaching gesture; no new Review control is added.
+- On a later Transactions edit, update an existing trusted rule for the
+  transaction’s original exact bank-and-merchant key. Do not let manual
+  entries or an arbitrary ledger edit create a trusted rule.
+
+## Proposed Work
+
+1. Add red-first core tests and a small exact-match trusted-rule policy;
+   update the bank importer to return `ready` only for eligible exact matches.
+2. Add the SwiftData trusted-rule record and container registration, then pass
+   local records through Dashboard/Sync to the importer and persist direct
+   imports through the existing atomic save path.
+3. Replace the Review toggle flow: Save and the existing Accept action create
+   or update trusted rules when eligible, while sibling pending transactions
+   receive suggestions only.
+4. Make Transactions edits correct an associated trusted rule safely, including
+   a description change that changes its exact merchant key.
+5. Update README/spec/task documentation; run focused and full tests,
+   CoreVerification, whitespace check, unsigned build, and one optional
+   owner-controlled Gmail scan.
+
+## Dependency Graph
+
+```text
+Exact trusted-rule core policy + tests
+              ↓
+SwiftData trusted-rule record + importer inputs
+              ↓
+Review Save / Accept teaching behavior
+              ↓
+Transactions correction behavior + documentation
+```
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| A fuzzy merchant match bypasses Review | High | Use a separate equality-only normalized key; never reuse the suggestion matcher. |
+| Transfers or top-ups are silently accepted | High | Gate by transaction kind before trust lookup; cover each in focused tests. |
+| An edit accidentally creates trust for manual data | High | Only update a pre-existing trusted rule for an imported eligible transaction. |
+| Changing a description collides with an existing trusted key | Medium | Resolve the target key deterministically in one SwiftData save and cover it with an app-model test where possible. |
+| Existing rules stop suggesting categories | Medium | Retain `MerchantRuleRecord` and its current importer path unchanged. |
+| A user cannot undo a trusted rule | Medium | Keep this out of scope as approved; document the limitation rather than hiding it. |
+
+## Verification Checkpoints
+
+1. Core policy: focused trusted-import tests fail first, then pass alongside
+   all existing importer tests.
+2. Persistence/UI: full suite and CoreVerification pass after SwiftData and
+   Save/Accept wiring.
+3. Delivery: `git diff --check` and the unsigned iOS build pass; an optional
+   real Gmail scan is initiated only by the owner.
+
+## Open Questions
+
+- None. The owner approved automatic exact-match trust from Save, no extra
+  Review button, and transaction editing as the correction path.

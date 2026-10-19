@@ -11,14 +11,14 @@ also recognizes the supported Livin' by Mandiri receipt formats under
 under `SPEC-octo-cimb-local-import.md`. It stores the normalized transaction
 fields needed by the ledger, not raw email or sensitive bank metadata.
 
-Every recognized BCA payment starts in Review. A local merchant rule can
-suggest a category, but the owner still taps Accept before it reaches the
-ledger. When the owner personally chooses or creates a category, that choice
-is itself the acceptance: the payment moves to the ledger and the app saves or
-updates its local merchant rule.
+Recognized BCA payments normally start in Review. A saved exact trusted
+bank-and-merchant rule can instead send an eligible QR/card purchase directly
+to the ledger. Other local merchant rules can suggest a category, but the
+owner still saves the transaction before it reaches the ledger.
 
-Jago, unsupported OCTO CIMB formats, and unknown candidates remain
-unsupported. They do not create records. Flip remains excluded upstream by
+Unsupported OCTO CIMB formats and unknown candidates remain unsupported. They
+do not create records. Supported Jago formats are defined in
+`SPEC-jago-local-import.md`. Flip remains excluded upstream by
 `gmail-mailbox-sync` and must never arrive here.
 
 ## User Flow
@@ -28,14 +28,16 @@ unsupported. They do not create records. Flip remains excluded upstream by
    the last 90 days and returns candidates in memory.
 3. The shared Review importer tries the BCA parser, Mandiri receipt parsers,
    then the supported OCTO CIMB QR-purchase parser.
-4. A valid successful BCA QRIS payment becomes a local transaction with status
-   `needsReview`. A matching local merchant rule may supply its suggested
-   category.
+4. A valid successful BCA QRIS payment becomes a local transaction. An exact
+   trusted bank-and-merchant rule makes it `ready`; otherwise it is
+   `needsReview`, possibly with a suggested category.
 5. Existing Gmail message IDs and transaction fingerprints are ignored so a
    repeat scan cannot add a duplicate.
 6. A system-suggested category stays in Review until the owner taps Accept.
-   When the owner chooses or creates a category themselves, the transaction
-   moves to `ready` immediately and that choice becomes a local merchant rule.
+   When the owner saves a category themselves, the transaction moves to
+   `ready`, creates an exact trusted bank-and-merchant rule for an eligible
+   QR/card purchase, and suggests—but does not accept—that category for
+   matching pending items that do not already have one.
 7. If the scan has no new importable records, the app explains the number that
    were already in the ledger and the number that were unsupported, without
    exposing email content.
@@ -61,8 +63,8 @@ The local transaction stores:
 - Parsed transaction time, merchant, amount, transaction kind, and parser
   confidence.
 - Category produced by an existing local merchant rule, if one matches.
-- Review status `needsReview` for every new BCA import, including imports with
-  a suggested category.
+- Status `ready` for an eligible BCA QRIS payment with an exact trusted rule;
+  otherwise `needsReview`, including imports with a suggested category.
 
 ## Duplicate Rules
 
@@ -82,16 +84,16 @@ The local transaction stores:
 - Run parsing and duplicate detection on the iPhone.
 - Persist only the normalized fields already represented by
   `TransactionRecord`.
-- Route every newly imported BCA, Mandiri, or supported OCTO CIMB transaction
-  to Review.
+- Route new transactions to Review unless an eligible QR/card purchase has an
+  exact trusted bank-and-merchant rule; those records become `ready`.
 - Preserve manual transactions, custom categories, and merchant rules.
 - Return counts for imported, duplicate, unsupported, and invalid candidates
   without including raw email text in the interface or logs.
 
 ### Ask First
 
-- Importing Jago, another OCTO CIMB format, or another bank format.
-- Adding a direct-to-ledger path that bypasses the owner's explicit action.
+- Importing another Jago or OCTO CIMB format, or another bank format.
+- Changing the exact trusted-rule policy or expanding its eligibility.
 - Storing any raw email content, Gmail header, account fragment, or reference
   number.
 - Changing the 90-day scan window, Gmail label, account count, or OAuth scope.
@@ -116,8 +118,12 @@ The local transaction stores:
   record.
 - An existing merchant rule fills the suggested category but keeps the BCA
   QRIS record in Review until the owner accepts it.
-- Choosing or creating a category in Review moves that transaction to `ready`
-  without a second acceptance step and updates the merchant rule.
+- Saving a category in Review moves that transaction to `ready` without a
+  second acceptance step, and suggests the category to matching uncategorized
+  pending items without accepting them.
+- Saving or accepting an eligible QR/card purchase creates or updates an exact
+  trusted rule for future imports without an extra control. Transfers, top-ups,
+  fuzzy matches, and merchant-less debit alerts remain in Review.
 - Applying saved merchant rules fills only matching Review categories; it
   never changes a transaction's Review status.
 - Unsupported candidates produce no local record and do not block recognized

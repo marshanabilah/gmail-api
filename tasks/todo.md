@@ -995,8 +995,8 @@ label, without changing Gmail or silently teaching a future merchant rule.
 - [x] A valid description updates only the selected local transaction.
 - [ ] Saving a description does not change its Gmail ID, amount, kind, date,
   or duplicate-suppression identity.
-- [ ] “Use for future transactions from this merchant” is off by default and,
-  if selected, uses the saved edited description.
+- [ ] A later exact trusted-rule update uses the saved edited description only
+  when that transaction already has an associated trusted rule.
 - [x] Existing category addition, category save, and deletion still work.
 
 **Verification:**
@@ -1121,18 +1121,163 @@ Module id: `review-description-editing`.
 
 ## 36. Edit descriptions before accepting a Review item
 
-**Description:** Add a local description editor to every pending Review item.
+**Description:** Add a local description and category editor to every pending
+Review item. Saving accepts that item and can suggest its category to matching
+uncategorized pending items; eligible purchases teach exact future imports.
 
 **Acceptance criteria:**
 
-- [ ] BCA, Mandiri, OCTO CIMB, Jago, and future pending imports expose `Edit description`.
-- [ ] Blank descriptions are rejected and a valid edit stays in Review.
-- [ ] Saving changes neither Gmail, status, category, source ID, amount, kind,
-  date, fingerprint, nor merchant rules.
-- [ ] Category, accept, discard, and Review month filtering still work.
+- [ ] BCA, Mandiri, OCTO CIMB, Jago, and future pending imports open the
+  shared editor with description and category fields.
+- [ ] Blank descriptions are rejected; Cancel makes no change.
+- [ ] Saving accepts only the edited item, preserves Gmail, source ID, amount,
+  kind, date, and fingerprint, and suggests its category to matching
+  uncategorized pending items without accepting them.
+- [ ] Saving an eligible Review purchase teaches an exact trusted rule without
+  an extra control; discard and Review month filtering still work.
 
 **Verification:**
 
 - [ ] Full tests and unsigned simulator build pass.
 - [ ] Optional manual check: rename one pending BCA or Mandiri item, then
   categorize and accept it from Review.
+
+---
+
+# Trusted Exact-Match Auto Import Task List
+
+Module id: `trusted-auto-import`.
+
+## 37. Define and test exact trusted-import policy
+
+**Description:** Add the pure trusted-rule value and exact bank-and-merchant
+matching policy, then use it in the bank importer without changing app
+persistence yet.
+
+**Acceptance criteria:**
+
+- [x] An exact trusted BCA/Mandiri/OCTO/Jago QR or card-purchase draft returns
+  `ready` with the trusted category.
+- [x] A different bank, near-but-not-equal merchant, transfer, top-up, and
+  Jago provisional debit alert remain `needsReview`.
+- [x] Duplicate and discard checks run before trusted-rule results.
+
+**Verification:**
+
+- [x] Focused trusted-import tests failed before the policy existed, then pass.
+- [x] Existing `BCAReviewImportTests` pass.
+
+**Dependencies:** Approved `SPEC-trusted-auto-import.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/TrustedImportRules.swift`
+- `Sources/ExpenseTrackerCore/BCAReviewImporter.swift`
+- `Tests/ExpenseTrackerCoreTests/TrustedImportRuleTests.swift`
+- `Tests/ExpenseTrackerCoreTests/BCAReviewImportTests.swift`
+
+**Estimated scope:** Medium: 4 files.
+
+## 38. Persist trusted rules and direct imports
+
+**Description:** Add the separate SwiftData trusted-rule record, register it
+with the container, and pass local rules into the existing preview/import save
+path.
+
+**Acceptance criteria:**
+
+- [ ] Existing transaction, category, merchant-rule, and discard records are
+  preserved when the app creates the additive trusted-rule model.
+- [x] A trusted importer result persists as `ready` through the existing local
+  transaction save path.
+- [x] No raw Gmail or sensitive bank data is stored in the new record.
+
+**Verification:**
+
+- [x] Focused core tests from Task 37 still pass.
+- [x] Unsigned iOS build succeeds after model registration.
+
+**Dependencies:** Task 37.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+- `Sources/ExpenseTracker/ExpenseTrackerApp.swift`
+- `Sources/ExpenseTracker/DashboardView.swift`
+- `Sources/ExpenseTracker/SyncModel.swift`
+
+**Estimated scope:** Medium: 4 files.
+
+## Checkpoint N: Trusted direct-import foundation
+
+- [x] Focused and existing importer tests pass.
+- [x] The app builds with the additive SwiftData model.
+- [x] Ineligible transaction types still require Review.
+
+## 39. Teach trusted rules through the existing Review flow
+
+**Description:** Remove the future-category toggle. Saving an eligible Review
+transaction, or accepting an existing category suggestion, creates or updates
+its exact trusted rule while retaining current pending-item suggestion logic.
+
+**Acceptance criteria:**
+
+- [x] Review has no additional action or toggle for trust.
+- [x] Save/Accept creates or updates an exact trusted rule only for eligible
+  imported QR/card purchases.
+- [x] Matching pending items may be suggested but are never accepted by that
+  action.
+
+**Verification:**
+
+- [x] Full `swift test -j 1` passes.
+- [x] Unsigned iOS build succeeds.
+
+**Dependencies:** Task 38.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/ReviewView.swift`
+- `Sources/ExpenseTracker/TransactionsView.swift`
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+
+**Estimated scope:** Small: 3 files.
+
+## 40. Correct trusted rules from Transactions and document behavior
+
+**Description:** Update an associated exact trusted rule when its saved
+transaction’s category or description changes, then align the active docs.
+
+**Acceptance criteria:**
+
+- [x] Editing an associated transaction’s category updates its future rule.
+- [x] Editing its description moves the rule to the new exact merchant key
+  without creating one from a manual or unrelated transaction.
+- [x] README and relevant specs describe Save-as-trust, exact matching, and
+  Review-only exclusions accurately.
+
+**Verification:**
+
+- [x] Full tests, CoreVerification, `git diff --check`, and unsigned build
+  pass.
+- [ ] Optional owner-controlled manual check: import a later exact merchant
+  receipt and confirm it reaches Transactions rather than Review.
+
+**Dependencies:** Task 39.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/TransactionsView.swift`
+- `Sources/ExpenseTracker/TransactionRecord.swift`
+- `README.md`
+- `SPEC-trusted-auto-import.md`
+- `SPEC-bca-local-import.md`
+
+**Estimated scope:** Medium: 5 files.
+
+## Checkpoint O: Trusted auto import complete
+
+- [x] Exact eligible receipts import directly with the learned category.
+- [x] Fuzzy matches and ineligible transaction kinds remain in Review.
+- [x] Saved transaction edits correct future exact imports locally.
+- [x] Automated verification passes; no real Gmail data has been modified.

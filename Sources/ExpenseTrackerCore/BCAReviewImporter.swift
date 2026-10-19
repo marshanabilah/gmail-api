@@ -60,7 +60,8 @@ public struct BankReviewImporter: Sendable {
         existingMessageIDs: Set<String>,
         existingFingerprints: Set<String>,
         discardedMessageIDs: Set<String> = [],
-        rules: [MerchantRule]
+        rules: [MerchantRule],
+        trustedRules: [TrustedImportRule] = []
     ) -> BankReviewImportResult {
         var seenMessageIDs = existingMessageIDs
         var seenFingerprints = existingFingerprints
@@ -90,13 +91,12 @@ public struct BankReviewImporter: Sendable {
                     continue
                 }
 
-                imports.append(
-                    ImportedTransaction(
-                        draft: draft,
-                        category: suggestedCategory(for: draft, rules: rules),
-                        status: .needsReview
-                    )
-                )
+                let trustedCategory = TrustedImportPolicy.category(for: draft, rules: trustedRules)
+                imports.append(ImportedTransaction(
+                    draft: draft,
+                    category: trustedCategory ?? suggestedCategory(for: draft, rules: rules),
+                    status: trustedCategory == nil ? .needsReview : .ready
+                ))
             }
         }
 

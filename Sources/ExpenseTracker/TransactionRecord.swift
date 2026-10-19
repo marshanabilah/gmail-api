@@ -51,6 +51,24 @@ final class MerchantRuleRecord {
 }
 
 @Model
+final class TrustedImportRuleRecord {
+    @Attribute(.unique) var key: String
+    var bankID: String
+    var merchant: String
+    var normalizedMerchantKey: String
+    var category: String
+
+    init(bankID: String, merchant: String, category: String) {
+        let normalizedMerchantKey = TrustedImportPolicy.normalizedMerchantKey(for: merchant)
+        self.key = "\(bankID)|\(normalizedMerchantKey)"
+        self.bankID = bankID
+        self.merchant = merchant
+        self.normalizedMerchantKey = normalizedMerchantKey
+        self.category = category
+    }
+}
+
+@Model
 final class CategoryRecord {
     @Attribute(.unique) var name: String
 
