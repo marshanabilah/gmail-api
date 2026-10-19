@@ -83,7 +83,7 @@ struct ReviewView: View {
             }
         }
         .sheet(item: $transactionBeingEdited) { transaction in
-            TransactionCategoryEditor(transaction: transaction, preservesReviewStatus: true)
+            TransactionCategoryEditor(transaction: transaction, acceptsReviewOnSave: true)
         }
         .confirmationDialog(
             "Discard this transaction?",

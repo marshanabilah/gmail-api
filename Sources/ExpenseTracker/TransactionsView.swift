@@ -460,7 +460,7 @@ struct TransactionCategoryEditor: View {
     @Query(sort: \CategoryRecord.name) private var savedCategories: [CategoryRecord]
     @Query private var merchantRules: [MerchantRuleRecord]
     let transaction: TransactionRecord
-    let preservesReviewStatus: Bool
+    let acceptsReviewOnSave: Bool
 
     @State private var description: String
     @State private var category: String
@@ -469,9 +469,9 @@ struct TransactionCategoryEditor: View {
     @State private var showsDeleteConfirmation = false
     @State private var validationMessage: String?
 
-    init(transaction: TransactionRecord, preservesReviewStatus: Bool = false) {
+    init(transaction: TransactionRecord, acceptsReviewOnSave: Bool = false) {
         self.transaction = transaction
-        self.preservesReviewStatus = preservesReviewStatus
+        self.acceptsReviewOnSave = acceptsReviewOnSave
         _description = State(initialValue: transaction.merchant)
         _category = State(initialValue: transaction.category ?? "Food & drink")
     }
@@ -523,15 +523,13 @@ struct TransactionCategoryEditor: View {
             }
             .navigationTitle("Edit transaction")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    if preservesReviewStatus {
-                        Menu("Save") {
-                            Button("Save & accept") { save(acceptingReview: true) }
-                            Button("Save for later") { save(acceptingReview: false) }
-                        }
-                    } else {
-                        Button("Save") { save(acceptingReview: false) }
+                if acceptsReviewOnSave {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
                     }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
                 }
             }
         }
@@ -554,14 +552,14 @@ struct TransactionCategoryEditor: View {
         }
     }
 
-    private func save(acceptingReview: Bool) {
+    private func save() {
         guard let normalizedDescription = TransactionDescription.normalized(description) else {
             validationMessage = "Add a description so you can recognize this transaction later."
             return
         }
         transaction.merchant = normalizedDescription
         transaction.category = category
-        if transaction.status == ImportStatus.needsReview.rawValue, (!preservesReviewStatus || acceptingReview) {
+        if acceptsReviewOnSave, transaction.status == ImportStatus.needsReview.rawValue {
             transaction.status = ImportStatus.ready.rawValue
         }
         if remembersMerchant {

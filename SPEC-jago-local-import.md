@@ -97,9 +97,10 @@ are one important use case, not a special case.
 
 - The editor initially shows the stored visible description (the `merchant`
   field in the current local model).
-- Every Review item has an `Edit description` action. Saving a valid edit
-  keeps the item in Review; the owner can then choose a category, accept, or
-  discard it without visiting Transactions first.
+- Tapping a Review item opens the shared transaction editor. Saving a valid
+  description and category accepts the item into the ledger; Cancel dismisses
+  the editor without changing it. The owner can discard it instead without
+  visiting Transactions first.
 - Saving requires a nonblank trimmed value and updates only that local
   transaction; it never changes Gmail.
 - The owner may then choose whether to create or update a merchant category

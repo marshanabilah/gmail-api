@@ -838,8 +838,9 @@ edit remains in Review and never changes Gmail or creates a merchant rule.
 
 1. Add a focused Review description sheet using the existing shared
    normalization rule.
-2. Keep Review status and category unchanged on save; preserve accept,
-   category, discard, and month-filter behavior.
+2. Save edits from Review directly into the ledger after a valid category and
+   description; provide Cancel to dismiss without changing the pending item.
+   Preserve discard and month-filter behavior.
 3. Add focused coverage for normalization and run the full test/build checks.
 
 ## Open Questions
