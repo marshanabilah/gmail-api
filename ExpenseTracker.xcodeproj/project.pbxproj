@@ -30,6 +30,9 @@
 		A00000000000000000000021 /* BCAReviewImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000122 /* BCAReviewImporter.swift */; };
 		A00000000000000000000022 /* SpendingAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000123 /* SpendingAnalytics.swift */; };
 		A00000000000000000000023 /* TrustedImportRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000124 /* TrustedImportRules.swift */; };
+		A00000000000000000000024 /* LocalNotificationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000125 /* LocalNotificationPolicy.swift */; };
+		A00000000000000000000025 /* LocalNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000126 /* LocalNotificationScheduler.swift */; };
+		A00000000000000000000026 /* LocalNotificationRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000127 /* LocalNotificationRoute.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -55,6 +58,9 @@
 		A00000000000000000000122 /* BCAReviewImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BCAReviewImporter.swift; sourceTree = "<group>"; };
 		A00000000000000000000123 /* SpendingAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingAnalytics.swift; sourceTree = "<group>"; };
 		A00000000000000000000124 /* TrustedImportRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedImportRules.swift; sourceTree = "<group>"; };
+		A00000000000000000000125 /* LocalNotificationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotifications/LocalNotificationPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000126 /* LocalNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotifications/LocalNotificationScheduler.swift; sourceTree = "<group>"; };
+		A00000000000000000000127 /* LocalNotificationRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNotifications/LocalNotificationRoute.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +98,8 @@
 				A00000000000000000000108 /* GmailConnectionView.swift */,
 				A00000000000000000000117 /* GoogleGmailAuthorizationService.swift */,
 				A00000000000000000000120 /* GmailMailbox/GoogleGmailMailboxClient.swift */,
+				A00000000000000000000126 /* LocalNotificationScheduler.swift */,
+				A00000000000000000000127 /* LocalNotificationRoute.swift */,
 			);
 			path = Sources/ExpenseTracker;
 			sourceTree = SOURCE_ROOT;
@@ -110,6 +118,7 @@
 				A00000000000000000000122 /* BCAReviewImporter.swift */,
 				A00000000000000000000123 /* SpendingAnalytics.swift */,
 				A00000000000000000000124 /* TrustedImportRules.swift */,
+				A00000000000000000000125 /* LocalNotificationPolicy.swift */,
 			);
 			path = Sources/ExpenseTrackerCore;
 			sourceTree = SOURCE_ROOT;
@@ -217,6 +226,9 @@
 				A00000000000000000000021 /* BCAReviewImporter.swift in Sources */,
 				A00000000000000000000022 /* SpendingAnalytics.swift in Sources */,
 				A00000000000000000000023 /* TrustedImportRules.swift in Sources */,
+				A00000000000000000000024 /* LocalNotificationPolicy.swift in Sources */,
+				A00000000000000000000025 /* LocalNotificationScheduler.swift in Sources */,
+				A00000000000000000000026 /* LocalNotificationRoute.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

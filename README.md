@@ -19,6 +19,9 @@ The project contains a native SwiftUI foundation and a local import core.
 - Manual 90-day scans of the owner-maintained `Transaction` Gmail label
 - A labeled message that Gmail refuses to return is skipped without discarding
   the rest of the scan; the app reports how many messages it skipped
+- Optional local iPhone notifications for a finished manual Gmail scan and one
+  next-day Review reminder; the notification text contains counts only, never
+  banking or email details
 - Duplicate protection using Gmail message IDs and transaction fingerprints
 - A local Review discard action that removes a non-spending item and prevents
   the same Gmail message from being imported again
@@ -32,6 +35,13 @@ The project contains a native SwiftUI foundation and a local import core.
 
 The app reads only the owner-maintained `Transaction` label when they tap
 Sync Gmail. It does not modify Gmail and does not run in the background.
+
+If the owner allows notifications, a completed manual scan can show a
+best-effort local completion notification. A confirmed import that leaves
+items in Review schedules one reminder for 09:00 on the following device-local
+day. Saving, accepting, discarding, or deleting the final pending item cancels
+that reminder. These are local reminders, not real-time bank alerts, and iOS
+cannot guarantee a notification if it suspends the app during a scan.
 
 ## Privacy model
 

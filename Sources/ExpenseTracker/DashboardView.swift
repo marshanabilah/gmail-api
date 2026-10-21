@@ -265,6 +265,9 @@ struct DashboardView: View {
     private func saveBankImport(_ preview: BankReviewImportResult) {
         if sync.saveBankReviewImports(preview, in: modelContext) {
             bankImportSummary = importSummary(preview)
+            Task {
+                await LocalNotificationScheduler().reconcileReviewReminder(in: modelContext)
+            }
         } else {
             bankImportSummary = "The transactions were not saved. Your existing ledger was left unchanged."
         }

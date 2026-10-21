@@ -924,6 +924,102 @@ Transactions correction behavior + documentation
 | Existing rules stop suggesting categories | Medium | Retain `MerchantRuleRecord` and its current importer path unchanged. |
 | A user cannot undo a trusted rule | Medium | Keep this out of scope as approved; document the limitation rather than hiding it. |
 
+---
+
+# Implementation Plan: Local Sync and Review Notifications
+
+Module id: `local-notifications`
+
+## Overview
+
+Add optional on-device notifications for a manually started Gmail scan and
+pending Review work. The completion notification reports mailbox-scan facts,
+not import results. One privacy-safe Review reminder is scheduled for 09:00 on
+the following device-local day after a confirmed import leaves pending items.
+
+## Architecture Decisions
+
+- Keep formatting and reminder decisions in a pure core policy. The policy
+  receives counts and authorization outcomes; it never imports `UserNotifications`.
+- Put `UNUserNotificationCenter` calls behind a narrow app-side adapter. Its
+  request identifiers replace the prior Review reminder rather than stacking
+  multiple alerts.
+- Request authorization only as a consequence of the first owner-tapped Gmail
+  sync. Authorization denial and adapter failure are best-effort outcomes that
+  never delay or fail sync.
+- Let `SyncModel` request authorization and issue sync-completion feedback
+  after a successful mailbox scan. Keep import-result feedback in Dashboard,
+  where the owner explicitly confirms the preview and SwiftData save succeeds.
+- Reconcile the Review reminder after every local action that can add, accept,
+  or discard a pending record. Use the current pending-record count as the
+  source of truth.
+- Add a small app-level notification route store and a notification-center
+  delegate. A Review-reminder tap updates the existing RootView tab state;
+  sync-completion taps keep the standard Dashboard entry route.
+- Do not add notification settings or background Gmail work in this module.
+
+## Dependency Graph
+
+```text
+Pure notification policy + focused tests
+             ↓
+UserNotifications adapter + permission seam
+             ↓
+Sync completion and Review reminder reconciliation
+             ↓
+Notification tap route into RootView
+```
+
+## Proposed Work
+
+1. Add the pure local-notification policy and red-first tests for safe sync
+   wording, next-day 09:00 scheduling, replacement, and cancellation.
+2. Add the `UserNotifications` adapter, authorization request, and stable
+   request identifiers. Wire scan completion through `SyncModel` without
+   changing Gmail behavior.
+3. Reconcile the one Review reminder after import, accept, and discard
+   actions, then route a Review notification tap into the existing tab state.
+4. Update README, the notification spec status, and the task list. Run focused
+   tests, the full suite, CoreVerification, and an unsigned simulator build.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Notification permission is denied | Low | Continue every sync and show existing in-app feedback. |
+| Completion copy implies imported records | Medium | Use mailbox candidate and skipped-message counts only. |
+| Repeated imports create reminder noise | Medium | Use one stable Review reminder identifier and replace it. |
+| A stale reminder survives an empty Review list | Medium | Reconcile after every import, accept, and discard action. |
+| iOS stops the app during a long scan | Medium | Make no background-completion promise; notification is best effort. |
+| A notification tap loses the Review route at launch | Medium | Store the route in app-level observable state before RootView renders. |
+
+## Verification Checkpoints
+
+### Checkpoint: Notification foundation
+
+- Focused policy tests pass.
+- Authorization and adapter failures do not change sync state.
+
+### Checkpoint: Complete local flow
+
+- A successful manual scan schedules privacy-safe completion feedback when
+  authorization is available.
+- One pending Review reminder is scheduled, replaced, or cancelled correctly.
+- A Review-reminder tap opens Review.
+- Full tests, CoreVerification, and the unsigned simulator build pass.
+
+## Open Questions
+
+- None. The first version uses 09:00 in the device's local calendar. A
+  configurable reminder time is deliberately deferred.
+
+## Implementation Status
+
+Completed 21 October 2026. The policy, iPhone adapter, Review reconciliation,
+and tap route are implemented. Full tests, CoreVerification, whitespace
+validation, and the unsigned iOS build pass; the notification prompt and tap
+remain an optional owner-controlled device check.
+
 ## Verification Checkpoints
 
 1. Core policy: focused trusted-import tests fail first, then pass alongside

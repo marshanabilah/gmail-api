@@ -21,12 +21,14 @@ final class SyncModel {
     private var hasRestoredConnection = false
     private let auth: GmailAuthCoordinator
     private let mailbox: GmailMailboxSyncCoordinator
+    private let notifications: any LocalNotificationScheduling
 
     init() {
         auth = GmailAuthCoordinator(service: GoogleGmailAuthorizationService())
         mailbox = GmailMailboxSyncCoordinator(
             service: GmailMailboxScanner(client: GoogleGmailMailboxClient())
         )
+        notifications = LocalNotificationScheduler()
     }
 
     func restoreConnection() {
@@ -139,8 +141,19 @@ final class SyncModel {
         canRetryMailboxSync = false
         state = .syncing
         Task {
+            await notifications.requestAuthorizationIfNeeded()
+        }
+        Task {
             await mailbox.sync(now: .now)
             applyMailboxSyncState()
+            if case .completed(let candidateCount) = mailbox.state {
+                await notifications.schedule(
+                    LocalNotificationPolicy.syncCompletion(
+                        candidateCount: candidateCount,
+                        skippedMessageCount: mailbox.latestSkippedMessageCount
+                    )
+                )
+            }
         }
     }
 

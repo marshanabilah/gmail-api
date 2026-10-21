@@ -6,6 +6,7 @@ struct RootView: View {
     @State private var showsAppearanceSettings = false
     @State private var selectedTab = AppTab.dashboard
     @State private var reviewMonth: Date?
+    @State private var notificationRoute = LocalNotificationRoute.shared
 
     private var preferredColorScheme: ColorScheme? {
         AppearancePreference(rawValue: appearancePreference)?.colorScheme
@@ -33,7 +34,13 @@ struct RootView: View {
         }
         .tint(.teal)
         .preferredColorScheme(preferredColorScheme)
-        .task { sync.restoreConnection() }
+        .task {
+            sync.restoreConnection()
+            openNotificationDestination(notificationRoute.destination)
+        }
+        .onChange(of: notificationRoute.destination) { _, destination in
+            openNotificationDestination(destination)
+        }
         .sheet(isPresented: $sync.showsConnectionSheet) {
             GmailConnectionView()
         }
@@ -53,6 +60,15 @@ struct RootView: View {
                 Text(message)
             }
         }
+    }
+
+    private func openNotificationDestination(_ destination: LocalNotificationKind?) {
+        guard let destination else { return }
+        if destination == .reviewReminder {
+            reviewMonth = nil
+            selectedTab = .review
+        }
+        notificationRoute.clearDestination()
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct ExpenseTrackerApp: App {
+    @UIApplicationDelegateAdaptor(LocalNotificationAppDelegate.self) private var notificationDelegate
     private let container: ModelContainer
 
     init() {

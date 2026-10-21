@@ -108,7 +108,11 @@ struct ReviewView: View {
     private func discard(_ transaction: TransactionRecord) {
         modelContext.insert(DiscardedImportRecord(sourceMessageID: transaction.sourceMessageID))
         modelContext.delete(transaction)
-        try? modelContext.save()
+        if (try? modelContext.save()) != nil {
+            Task {
+                await LocalNotificationScheduler().reconcileReviewReminder(in: modelContext)
+            }
+        }
         transactionAwaitingDiscard = nil
     }
 
@@ -135,7 +139,11 @@ struct ReviewView: View {
             }
         }
         createOrUpdateTrustedRule(for: transaction, category: category)
-        try? modelContext.save()
+        if (try? modelContext.save()) != nil {
+            Task {
+                await LocalNotificationScheduler().reconcileReviewReminder(in: modelContext)
+            }
+        }
     }
 
     private func createOrUpdateTrustedRule(for transaction: TransactionRecord, category: String) {

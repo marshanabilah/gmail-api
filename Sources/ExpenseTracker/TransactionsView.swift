@@ -560,7 +560,8 @@ struct TransactionCategoryEditor: View {
         }
         transaction.merchant = normalizedDescription
         transaction.category = category
-        if acceptsReviewOnSave, transaction.status == ImportStatus.needsReview.rawValue {
+        let resolvesPendingReview = acceptsReviewOnSave && transaction.status == ImportStatus.needsReview.rawValue
+        if resolvesPendingReview {
             transaction.status = ImportStatus.ready.rawValue
             suggestCategoryForMatchingPendingTransactions(category: category)
             createOrUpdateTrustedRule(merchant: normalizedDescription, category: category)
@@ -570,6 +571,11 @@ struct TransactionCategoryEditor: View {
 
         do {
             try modelContext.save()
+            if resolvesPendingReview {
+                Task {
+                    await LocalNotificationScheduler().reconcileReviewReminder(in: modelContext)
+                }
+            }
             dismiss()
         } catch {
             validationMessage = "Could not save the category. Try again."
@@ -636,6 +642,7 @@ struct TransactionCategoryEditor: View {
     }
 
     private func deleteTransaction() {
+        let removesPendingReview = transaction.status == ImportStatus.needsReview.rawValue
         if TransactionDeletion.shouldSuppressFutureImport(bankID: transaction.bankID) {
             modelContext.insert(DiscardedImportRecord(sourceMessageID: transaction.sourceMessageID))
         }
@@ -643,6 +650,11 @@ struct TransactionCategoryEditor: View {
 
         do {
             try modelContext.save()
+            if removesPendingReview {
+                Task {
+                    await LocalNotificationScheduler().reconcileReviewReminder(in: modelContext)
+                }
+            }
             dismiss()
         } catch {
             validationMessage = "Could not delete this transaction. Try again."

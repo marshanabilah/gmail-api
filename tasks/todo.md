@@ -1288,3 +1288,135 @@ transaction’s category or description changes, then align the active docs.
 - [x] Fuzzy matches and ineligible transaction kinds remain in Review.
 - [x] Saved transaction edits correct future exact imports locally.
 - [x] Automated verification passes; no real Gmail data has been modified.
+
+---
+
+# Local Sync and Review Notifications Task List
+
+Module id: `local-notifications`.
+
+## 41. Define and test the local-notification policy
+
+**Description:** Add a pure policy for privacy-safe Gmail sync completion copy
+and one next-day 09:00 Review reminder, without importing iOS notification
+frameworks into the core target.
+
+**Acceptance criteria:**
+
+- [x] Completion copy reports only candidate and skipped-message counts.
+- [x] The policy schedules one next-day 09:00 local reminder when pending
+  Review count is positive and cancels it when the count is zero.
+- [x] The policy uses stable identifiers so a new reminder replaces the prior
+  one.
+
+**Verification:**
+
+- [x] Focused tests failed before the policy existed, then passed:
+  `swift test -j 1 --filter LocalNotification`
+
+**Dependencies:** Approved `SPEC-local-notifications.md`.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTrackerCore/LocalNotifications/`
+- `Tests/ExpenseTrackerCoreTests/LocalNotificationPolicyTests.swift`
+
+**Estimated scope:** Small: 2 files.
+
+## 42. Add the optional iPhone notification adapter and sync completion
+
+**Description:** Request notification authorization from the first owner-tapped
+Gmail scan, then post one local completion notification after a successful
+mailbox scan when permission is available.
+
+**Acceptance criteria:**
+
+- [x] Permission denial or adapter failure never blocks, retries, or changes a
+  Gmail sync result.
+- [x] A successful scan creates only privacy-safe completion feedback.
+- [x] Completion notifications never say transactions were imported.
+
+**Verification:**
+
+- [x] Focused policy tests remain green.
+- [x] Unsigned iOS simulator build succeeds.
+
+**Dependencies:** Task 41.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/LocalNotifications/`
+- `Sources/ExpenseTracker/SyncModel.swift`
+- `Sources/ExpenseTracker/ExpenseTrackerApp.swift`
+
+**Estimated scope:** Medium: 3 files.
+
+## 43. Reconcile the Review reminder and route notification taps
+
+**Description:** Maintain a single reminder after imports and Review actions,
+and route a tapped Review reminder to the existing Review tab.
+
+**Acceptance criteria:**
+
+- [x] A successful import with pending records schedules or replaces one
+  reminder for 09:00 on the next device-local day.
+- [x] Saving or discarding the final pending Review record cancels it.
+- [x] A Review-reminder tap opens Review; a sync-completion tap keeps the
+  standard app entry route.
+
+**Verification:**
+
+- [x] Relevant focused tests and the full `swift test -j 1` suite pass.
+- [x] Unsigned iOS simulator build succeeds.
+
+**Dependencies:** Task 42.
+
+**Files likely touched:**
+
+- `Sources/ExpenseTracker/DashboardView.swift`
+- `Sources/ExpenseTracker/ReviewView.swift`
+- `Sources/ExpenseTracker/RootView.swift`
+- `Sources/ExpenseTracker/TransactionsView.swift`
+- `Sources/ExpenseTracker/LocalNotifications/`
+
+**Estimated scope:** Medium: 5 files.
+
+## 44. Align documentation and verify notifications
+
+**Description:** Record the final notification behavior and verify it without
+requiring a Gmail scan or physical-device notification prompt.
+
+**Acceptance criteria:**
+
+- [x] README and the notification spec describe local-only, best-effort
+  completion feedback and the one Review reminder accurately.
+- [x] No notification includes banking or email content.
+- [x] Existing Gmail permission, manual-sync, import, and Review behavior is
+  unchanged.
+
+**Verification:**
+
+- [x] Full tests, CoreVerification, unsigned simulator build, and
+  `git diff --check` pass.
+- [ ] Optional owner-controlled device check: grant notifications, start a
+  long Gmail sync, then verify the completion notification and Review-reminder
+  tap route.
+
+**Dependencies:** Task 43.
+
+**Files likely touched:**
+
+- `README.md`
+- `SPEC-local-notifications.md`
+- `tasks/plan.md`
+- `tasks/todo.md`
+
+**Estimated scope:** Small: 4 files.
+
+## Checkpoint P: Local notifications complete
+
+- [x] Permission is optional and cannot block Gmail sync.
+- [x] Sync completion feedback is private and does not imply an import.
+- [x] Only one pending Review reminder exists at a time.
+- [x] Notification taps reach the expected app destination.
+- [x] Automated verification passes.
